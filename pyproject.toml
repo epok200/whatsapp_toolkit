@@ -1,14 +1,19 @@
 [project]
 name = "whatsapp-toolkit"
-version = "1.0.3"
+version = "1.0.4"
 description = "Una biblioteca para interactuar con la API de WhatsApp desde Python usando Evolution API"
 authors = [
     { name="Fernando Leon Franco", email="fernanlee2131@gmail.com" }
 ]
 readme = "README.md"
 requires-python = ">=3.10"
+license = { text = "MIT" }
 dependencies = [
     "requests>=2.32.5",
+]
+
+classifiers = [
+    "License :: OSI Approved :: MIT License",
 ]
 
 
