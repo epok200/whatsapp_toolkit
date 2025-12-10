@@ -3,7 +3,7 @@ name = "whatsapp-toolkit"
 version = "1.0.4"
 description = "Una biblioteca para interactuar con la API de WhatsApp desde Python usando Evolution API"
 authors = [
-    { name="Fernando Leon Franco", email="fernanlee2131@gmail.com" }
+    { name="Fernando Leon Franco", email="fernanlee2131@gmail.com"}
 ]
 readme = "README.md"
 requires-python = ">=3.10"
@@ -14,8 +14,18 @@ dependencies = [
 
 classifiers = [
     "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Operating System :: OS Independent",
 ]
 
+[project.urls]
+Homepage = "https://github.com/epok200/whatsapp_toolkit"
+Repository = "https://github.com/epok200/whatsapp_toolkit"
+Issues = "https://github.com/epok200/whatsapp_toolkit/issues"
 
 [build-system]
 requires = ["uv_build>=0.9.17,<0.10.0"]
