@@ -1,6 +1,6 @@
 [project]
 name = "whatsapp-toolkit"
-version = "1.0.4"
+version = "1.0.5"
 description = "Una biblioteca para interactuar con la API de WhatsApp desde Python usando Evolution API"
 authors = [
     { name="Fernando Leon Franco", email="fernanlee2131@gmail.com"}
