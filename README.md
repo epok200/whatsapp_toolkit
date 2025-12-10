@@ -72,3 +72,19 @@ send_media(number="521234567890", media_b64=pdf_b64, filename="ticket.pdf", capt
 
 ## Más información
 Consulta la documentación de cada archivo para detalles avanzados, recomendaciones y ejemplos específicos.
+
+## Instalación
+
+Con UV Package Manager:
+```bash
+uv add whatsapp-toolkit
+```
+
+Con pip:
+```bash
+pip install whatsapp-toolkit
+```
+## Requisitos
+- Python 3.10 o superior
+- requests  >=2.32.5
+
