@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-export $(grep -v '^#' .env | xargs)
+export $(grep -v '^#' .env.secret | xargs)
 
 # Leer versión desde pyproject.toml
 VERSION=$(uv run python get_version.py)
