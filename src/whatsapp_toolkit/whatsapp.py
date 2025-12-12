@@ -331,6 +331,22 @@ class WhatsappClient:
 
     @require_connection
     def send_text(self, number: str, text: str, link_preview: bool = True, delay_ms: int = 1000):
+        """
+        Envía un mensaje de texto de WhatsApp a un número específico.
+        Args:
+            number (str): Número de teléfono de destino en formato internacional (por ejemplo, "+34123456789").
+            text (str): Contenido del mensaje de texto a enviar.
+            link_preview (bool, optional): Indica si se debe generar vista previa de enlaces incluidos en el mensaje.
+                Por defecto es True.
+            delay_ms (int, optional): Retraso en milisegundos antes de enviar el mensaje. Por defecto es 1000.
+        Returns:
+            Any: El resultado devuelto por `self.sender.send_text`, típicamente la respuesta del envío
+            proporcionada por la implementación concreta del `sender`.
+        Raises:
+            AttributeError: Si `self.sender` es None o no implementa el método `send_text`.
+            Exception: Cualquier error que pueda producirse durante el envío del mensaje.
+        """
+        
         return self.sender.send_text(number, text, link_preview, delay_ms=delay_ms)
 
     @require_connection
