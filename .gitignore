@@ -20,3 +20,5 @@ src/whatsapp_toolkit/tts_models/
 test/tts_models/
 *.onnx
 *.onnx.json
+
+tts_models/

@@ -1,6 +1,6 @@
 services:
   evolution-api:
-    image: evoapicloud/evolution-api:v2.3.6
+    image: evoapicloud/evolution-api:v2.3.7
     restart: always
     ports:
       - "8080:8080"

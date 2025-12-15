@@ -195,10 +195,10 @@ numero = get_chat_id("yo")
 
 
 iniciar_prueba_api_cruda(numero, 
-                         mensaje=False, 
-                         pdf=False, 
-                         sticker=False, 
-                         imagen=False, 
-                         ubicacion=False, 
+                         mensaje=True, 
+                         pdf=True, 
+                         sticker=True,
+                         imagen=True, 
+                         ubicacion=True,
                          enviar_audio=True
 )
