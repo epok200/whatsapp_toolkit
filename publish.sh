@@ -10,4 +10,4 @@ rm -rf dist
 uv build
 uv publish
 
-echo "✅ Published whatsapp-toolkit ${VERSION} to PyPI."
+echo "✅ Published whatsapp-toolkit ${VERSION} to PyPI. link: https://pypi.org/project/whatsapp-toolkit/"

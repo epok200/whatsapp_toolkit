@@ -1,90 +1,242 @@
 
 # Whatsapp Toolkit
 
-Este módulo permite el envío de mensajes, archivos y multimedia por WhatsApp, con manejo avanzado de conexión, errores y administración de instancias.
+Librería ligera para enviar mensajes de WhatsApp a través de la API de Envole (WhatsApp Baileys).
 
+Permite:
 
-## Componentes principales
+- Crear y administrar instancias de WhatsApp.
+- Conectar una instancia escaneando un código QR.
+- Enviar mensajes de texto, documentos (PDF), imágenes, stickers, ubicación y audio (nota de voz).
 
-- **whatsapp.py**: Cliente principal para WhatsApp, incluye administración de instancias, conexión QR, envío de mensajes, archivos, multimedia, ubicación, audio y stickers.
-- **whatsapp_instanced.py**: Utilidades avanzadas para instancias y flujos personalizados, incluyendo envío asíncrono de mensajes y archivos usando Celery.
-
----
-
-## Ejemplos y recomendaciones de uso
-
-### 1. Inicialización y conexión
-Conecta tu cliente y asegura la conexión antes de enviar mensajes.
-```python
-from epok_toolkit.messaging.whatsapp import WhatsappClient
-
-client = WhatsappClient(api_key="tu_api_key", server_url="https://api.whatsapp.com", instance_name="EPOK")
-client.ensure_connected()  # Muestra QR y enlaza la instancia si es necesario
-```
-**Tip:** El método `ensure_connected` reintenta y muestra QR hasta enlazar la instancia.
-
-### 2. Enviar mensajes de texto
-```python
-client.send_text(number="521234567890", text="Hola desde EPOK Toolkit!")
-```
-
-### 3. Enviar archivos y multimedia
-Envía documentos, imágenes, stickers, audio y ubicación:
-```python
-# Enviar PDF
-with open("ticket.pdf", "rb") as f:
-    import base64
-    pdf_b64 = base64.b64encode(f.read()).decode()
-client.send_media(number="521234567890", media_b64=pdf_b64, filename="ticket.pdf", caption="Tu ticket", mediatype="document", mimetype="application/pdf")
-
-# Enviar sticker
-client.send_sticker(number="521234567890", sticker_b64=sticker_b64)
-
-# Enviar ubicación
-client.send_location(number="521234567890", name="EPOK", address="Calle 123", latitude=21.123, longitude=-101.456)
-
-# Enviar audio
-client.send_audio(number="521234567890", audio_b64=audio_b64)
-```
-
-### 4. Administración de instancias y grupos
-```python
-client.create_instance()      # Crea una nueva instancia en el servidor
-client.delete_instance()      # Elimina la instancia
-client.fetch_groups()         # Obtiene todos los grupos y participantes
-```
-
-
-### 6. Envío asíncrono con whatsapp_instanced.py
-Envía mensajes y archivos en segundo plano usando Celery:
-```python
-from epok_toolkit.messaging.whatsapp_instanced import send_text, send_media
-
-# Enviar mensaje de texto de forma asíncrona
-send_text(number="521234567890", message="Hola desde EPOK Toolkit!")
-
-# Enviar archivo PDF de forma asíncrona
-send_media(number="521234567890", media_b64=pdf_b64, filename="ticket.pdf", caption="Tu ticket")
-```
-**Tip:** Configura Celery y los settings de API_KEY, INSTANCE y SERVER_URL para habilitar el envío asíncrono.
+Toda la API pública se expone desde el módulo `whatsapp_toolkit`.
 
 ---
-
-## Más información
-Consulta la documentación de cada archivo para detalles avanzados, recomendaciones y ejemplos específicos.
 
 ## Instalación
 
 Con UV Package Manager:
+
 ```bash
 uv add whatsapp-toolkit
 ```
 
 Con pip:
+
 ```bash
 pip install whatsapp-toolkit
 ```
-## Requisitos
+
+### Requisitos
+
 - Python 3.10 o superior
-- requests  >=2.32.5
+- `requests >= 2.32.5`
+
+---
+
+## Componentes principales
+
+```python
+from whatsapp_toolkit import (
+    WhatsappClient,
+    PDFGenerator,
+    obtener_gif_base64,
+    obtener_imagen_base64,
+)
+```
+
+- `WhatsappClient`: cliente principal para gestionar la instancia y enviar mensajes.
+- `PDFGenerator`: utilidad para generar un PDF simple y devolverlo en base64 listo para enviar.
+- `obtener_gif_base64()`: descarga un GIF y lo devuelve en base64 para usarlo como sticker.
+- `obtener_imagen_base64()`: lee una imagen incluida en el paquete y la devuelve en base64 para enviarla como foto.
+
+Internamente se usan los objetos `WhatsAppInstance` y `WhatsAppSender`, pero normalmente no necesitas usarlos directamente.
+
+---
+
+## Configuración rápida
+
+La forma más sencilla de trabajar es usando variables de entorno, igual que en los tests del proyecto.
+
+Variables de entorno esperadas:
+
+- `WHATSAPP_API_KEY`: API key de Envole.
+- `WHATSAPP_INSTANCE`: nombre de la instancia (por ejemplo, `"con"`).
+- `WHATSAPP_SERVER_URL`: URL del servidor de Envole. Si no se define, se usa `"http://localhost:8080/"`.
+
+Ejemplo mínimo de inicialización:
+
+```python
+import os
+from whatsapp_toolkit import WhatsappClient
+
+API_KEY = os.getenv("WHATSAPP_API_KEY", "")
+INSTANCE = os.getenv("WHATSAPP_INSTANCE", "con")
+SERVER_URL = os.getenv("WHATSAPP_SERVER_URL", "http://localhost:8080/")
+
+client = WhatsappClient(API_KEY, SERVER_URL, INSTANCE)
+
+# Opcional pero recomendado: asegura la conexión (muestra QR si hace falta)
+client.ensure_connected()
+```
+
+`ensure_connected()` intentará varias veces enlazar la instancia mostrando un código QR hasta que quede conectada.
+
+---
+
+## Enviar mensajes básicos
+
+### Texto
+
+Los números deben ir en formato internacional, por ejemplo México: `5214771234567`.
+
+```python
+client.send_text(
+    number="5214771234567",
+    text="¡Hola! Este es un mensaje de prueba 🚀",
+    delay_ms=0,  # opcional, delay entre envíos en milisegundos
+)
+```
+
+### PDF como documento
+
+Usando el generador incluido, igual que en los tests:
+
+```python
+from whatsapp_toolkit import PDFGenerator
+
+pdf_b64 = PDFGenerator.generar_pdf_base64(
+    titulo="Prueba de PDF",
+    subtitulo="Este PDF fue generado automáticamente.",
+)
+
+client.send_media(
+    number="5214771234567",
+    media_b64=pdf_b64,
+    filename="prueba_envole_api.pdf",
+    caption="Aquí tienes el PDF solicitado.",
+    # mediatype y mimetype por default ya son de documento/PDF
+)
+```
+
+### Imagen como foto
+
+El propio paquete trae una imagen de ejemplo que puedes reutilizar tal como se hace en los tests:
+
+```python
+from whatsapp_toolkit import obtener_imagen_base64
+
+imagen_b64 = obtener_imagen_base64()
+
+client.send_media(
+    number="5214771234567",
+    media_b64=imagen_b64,
+    filename="prueba_imagen.jpg",
+    caption="Aquí tienes la imagen solicitada.",
+    mediatype="image",
+    mimetype="image/jpeg",
+)
+```
+
+### Sticker
+
+Puedes enviar un GIF como sticker pasando el base64 del GIF animado:
+
+```python
+from whatsapp_toolkit import obtener_gif_base64
+
+gif_b64 = obtener_gif_base64()
+
+client.send_sticker(
+    number="5214771234567",
+    sticker_b64=gif_b64,
+)
+```
+
+### Ubicación
+
+```python
+client.send_location(
+    number="5214771234567",
+    name="Ubicación de prueba",
+    address="Calle Falsa 123, Ciudad Ejemplo",
+    latitude=19.4326,
+    longitude=-99.1332,
+)
+```
+
+### Audio (nota de voz)
+
+Para enviar audio solo necesitas una cadena base64 del archivo OGG/OPUS (o WAV) que quieras mandar. El proyecto incluye en los tests un ejemplo de generación de audio con Piper, pero en producción puedes usar cualquier TTS o grabación propia:
+
+```python
+audio_b64 = "..."  # audio en base64 (OGG/OPUS recomendado)
+
+client.send_audio(
+    number="5214771234567",
+    audio_b64=audio_b64,
+)
+```
+
+---
+
+## Administración de instancia y grupos
+
+Algunos métodos útiles del cliente:
+
+```python
+# Crear y borrar instancia
+client.create_instance()       # Crea una nueva instancia en el servidor Envole
+client.delete_instance()       # Elimina la instancia actual
+
+# Forzar mostrar QR manualmente en cualquier momento
+client.connect_instance_qr()
+
+# Listar grupos (opcionalmente con participantes)
+groups = client.fetch_groups(get_participants=True)
+
+# Forzar conexión a un número específico (cuando la API lo soporta)
+client.connect_number("5214771234567")
+```
+
+---
+
+## Flujo de prueba completo (similar a test_api_cruda)
+
+Un flujo típico para pruebas locales se parece a lo que hay en `test/test_api_cruda.py`:
+
+```python
+import os
+from whatsapp_toolkit import WhatsappClient, PDFGenerator, obtener_gif_base64, obtener_imagen_base64
+
+API_KEY = os.getenv("WHATSAPP_API_KEY", "")
+INSTANCE = os.getenv("WHATSAPP_INSTANCE", "con")
+SERVER_URL = os.getenv("WHATSAPP_SERVER_URL", "http://localhost:8080/")
+
+client = WhatsappClient(API_KEY, SERVER_URL, INSTANCE)
+client.ensure_connected()
+
+numero = "5214771234567"  # tu número o un grupo
+
+# Texto
+client.send_text(numero, "¡Hola! Esta es una prueba de envío de mensajes vía Envole API 🚀")
+
+# PDF
+pdf_b64 = PDFGenerator.generar_pdf_base64("Prueba de PDF", "Este es un PDF generado y enviado.")
+client.send_media(numero, pdf_b64, filename="prueba.pdf", caption="Aquí tienes el PDF.")
+
+# Sticker
+gif_b64 = obtener_gif_base64()
+client.send_sticker(numero, gif_b64)
+
+# Imagen
+img_b64 = obtener_imagen_base64()
+client.send_media(numero, img_b64, filename="prueba.jpg", caption="Imagen de prueba", mediatype="image", mimetype="image/jpeg")
+
+# Ubicación
+client.send_location(numero, "Ubicación de prueba", "Calle Falsa 123", 19.4326, -99.1332)
+```
+
+Con esto deberías poder replicar y adaptar fácilmente el comportamiento que se demuestra en los tests del repositorio.
+
 
