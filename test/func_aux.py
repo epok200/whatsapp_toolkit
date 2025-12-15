@@ -1,4 +1,10 @@
 from typing import Union
+from platformdirs import user_cache_dir
+from pathlib import Path
+
+app_name = "whatsapp_toolkit"
+cache_dir = Path(user_cache_dir(app_name))
+models_dir = cache_dir / "tts_models"
 
 
 def generar_audio(texto: str, idioma: str = "es", voz: Union[str, None] = None, length_scale: float = 1.0, sentence_silence: float = 0.0) -> str:
@@ -141,9 +147,7 @@ def generar_audio(texto: str, idioma: str = "es", voz: Union[str, None] = None, 
             stdout=subprocess.DEVNULL,
             stderr=subprocess.PIPE,
         )
-
-    base_dir = Path(__file__).parent
-    models_dir = base_dir / "tts_models"
+    # Directorio de modelos
     models_dir.mkdir(parents=True, exist_ok=True)
 
     # Voces sugeridas (Piper / rhasspy piper-voices). Puedes ir probando.
