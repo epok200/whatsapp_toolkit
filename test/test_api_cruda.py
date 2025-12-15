@@ -2,10 +2,9 @@ import os
 
 from colorstreak import Logger as log
 from dotenv import load_dotenv
-from func_aux import generar_audio
 
 from whatsapp_toolkit import (PDFGenerator, WhatsappClient, obtener_gif_base64,
-                              obtener_imagen_base64)
+                              obtener_imagen_base64, generar_audio)
 
 # =========== FUNCIONES AUXILIARES ============
 
