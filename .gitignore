@@ -11,3 +11,12 @@ wheels/
 .env
 .env
 .env.secret
+
+
+# MacOS files
+.DS_Store
+# TTS models (local only)
+src/whatsapp_toolkit/tts_models/
+test/tts_models/
+*.onnx
+*.onnx.json

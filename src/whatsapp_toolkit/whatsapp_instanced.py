@@ -11,9 +11,9 @@ INSTANCE = os.getenv("WHATSAPP_INSTANCE")
 SERVER_URL = os.getenv("WHATSAPP_SERVER_URL")
 
 
-def send_message(number: str, message: str, delay :int):
+def send_message(number: str, message: str, delay_ms: int):
     client = WhatsappClient(api_key=API_KEY, server_url=SERVER_URL, instance_name=INSTANCE)
-    return client.send_text(number, message, delay_ms=delay)
+    return client.send_text(number, message, delay_ms=delay_ms)
 
 
 
