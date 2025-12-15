@@ -1,2 +1,2 @@
-from .whatsapp import WhatsappClient
-from .whatsapp_instanced import send_media, send_message
+from .client import WhatsappClient
+from .media import PDFGenerator, obtener_gif_base64, obtener_imagen_base64

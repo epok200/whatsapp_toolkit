@@ -2,15 +2,10 @@ import os
 
 from colorstreak import Logger as log
 from dotenv import load_dotenv
-
-from whatsapp_toolkit.api_cruda import (PDFGenerator, WhatsappClient,
-                                        obtener_gif_base64,
-                                        obtener_imagen_base64)
-
 from func_aux import generar_audio
 
-
-
+from whatsapp_toolkit import (PDFGenerator, WhatsappClient, obtener_gif_base64,
+                              obtener_imagen_base64)
 
 # =========== FUNCIONES AUXILIARES ============
 
@@ -140,15 +135,14 @@ def iniciar_prueba_api_cruda(numero:str, mensaje: bool = True, pdf: bool = False
 load_dotenv()
 
 
-WHATSAPP_API_KEY=os.getenv("WHATSAPP_API_KEY")
-WHATSAPP_INSTANCE=os.getenv("WHATSAPP_INSTANCE")
+WHATSAPP_API_KEY=os.getenv("WHATSAPP_API_KEY", "")
+WHATSAPP_INSTANCE=os.getenv("WHATSAPP_INSTANCE", "")
 #WHATSAPP_SERVER_URL=https://evo.apps.leonesfrancos.com/ (SI SE DESEA USAR EL SERVIDOR REMOTO)
 WHATSAPP_SERVER_URL=os.getenv("WHATSAPP_SERVER_URL", "http://localhost:8080/")
 
-API_KEY = WHATSAPP_API_KEY
-INSTANCE = WHATSAPP_INSTANCE
-SERVER_URL = WHATSAPP_SERVER_URL
-
+API_KEY : str = WHATSAPP_API_KEY
+INSTANCE : str = WHATSAPP_INSTANCE
+SERVER_URL : str = WHATSAPP_SERVER_URL
 
 
 # ============ INICIALIZAR CLIENTE DE WHATSAPP ============
