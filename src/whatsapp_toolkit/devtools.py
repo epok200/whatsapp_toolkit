@@ -1,18 +1,12 @@
 """Developer tools for spinning up a local Evolution API stack.
 
 Design goals:
-- **Zero side-effects on import** (nothing is created or executed unless explicitly called).
-- Cross-platform: works on macOS/Linux/Windows by using Python + Docker CLI.
-- Safe by default: generates `.env.example` (NOT `.env`) so secrets don't get committed by accident.
-
-Typical usage:
-
-    from whatsapp_toolkit import devtools
-
-    devtools.init_local_evolution(path=".")
-    stack = devtools.local_evolution(path=".")
-    stack.start(detached=False)
-
+- Zero side-effects on import.
+- Minimal files: only docker-compose.yml + .env.example + wakeup_evolution.sh
+- Robust: docker compose is executed with an explicit --env-file.
+- Cross-platform note:
+  - macOS/Linux: wakeup_evolution.sh runs directly.
+  - Windows: you can run the same .sh via Git Bash or WSL (Windows CMD/PowerShell won't run .sh natively).
 """
 
 from __future__ import annotations
@@ -22,7 +16,7 @@ from pathlib import Path
 import os
 import shutil
 import subprocess
-from typing import Optional
+from typing import Optional, Tuple
 
 
 # -----------------------------
@@ -39,7 +33,6 @@ _DOTENV_EXAMPLE = """# =========================================
 # --- Python client settings ---
 WHATSAPP_API_KEY=YOUR_EVOLUTION_API_KEY
 WHATSAPP_INSTANCE=fer
-# WHATSAPP_SERVER_URL=https://evo.apps.tu-dominio.com/   # remote server (optional)
 WHATSAPP_SERVER_URL=http://localhost:8080/
 
 # --- Docker Compose shared secrets ---
@@ -72,7 +65,7 @@ _DOCKER_COMPOSE = """services:
       - TELEMETRY_URL=
 
       # =========================
-      # Auth (secret stays in .env)
+      # Auth (secret stays in .env / --env-file)
       # =========================
       - AUTHENTICATION_TYPE=apikey
       - AUTHENTICATION_API_KEY=${AUTHENTICATION_API_KEY}
@@ -107,7 +100,6 @@ _DOCKER_COMPOSE = """services:
       - evolution-postgres-data:/var/lib/postgresql/data
 
     environment:
-      # Database credentials for the internal Postgres container
       - POSTGRES_DB=evolution
       - POSTGRES_USER=postgresql
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -128,32 +120,14 @@ volumes:
 _WAKEUP_SH = """#!/usr/bin/env bash
 set -euo pipefail
 
-clear || true
-clear || true
+# This script is intended for macOS/Linux and for Windows via Git Bash or WSL.
+# It does NOT try to start Docker Desktop/daemon for you.
 
-echo "Levantando el servicio de Evolution API (Docker Compose)"
+echo "[devtools] Starting Evolution API stack (Docker Compose)"
+echo "[devtools] Open: http://localhost:8080/manager/"
 
 docker compose down || true
-
-echo "Servicio levantándose... abre: http://localhost:8080/manager/"
-
 docker compose up${UP_ARGS}
-
-echo "✅ Stack listo (si estás en modo detached)."
-"""
-
-_WAKEUP_PS1 = """#requires -Version 5.1
-$ErrorActionPreference = 'Stop'
-
-Write-Host "Levantando el servicio de Evolution API (Docker Compose)" -ForegroundColor Cyan
-
-try { docker compose down | Out-Null } catch { }
-
-Write-Host "Servicio levantándose... abre: http://localhost:8080/manager/" -ForegroundColor Yellow
-
-docker compose up ${UP_ARGS}
-
-Write-Host "✅ Stack listo (si estás en modo detached)." -ForegroundColor Green
 """
 
 
@@ -167,7 +141,6 @@ class LocalEvolutionPaths:
     compose_file: Path
     env_example_file: Path
     wakeup_sh: Path
-    wakeup_ps1: Path
 
 
 def init_local_evolution(
@@ -181,27 +154,23 @@ def init_local_evolution(
     - docker-compose.yml
     - .env.example
     - wakeup_evolution.sh
-    - wakeup_evolution.ps1
 
-    It **does NOT** create `.env` to avoid accidentally committing secrets.
+    It does NOT create `.env` to avoid accidentally committing secrets.
     """
-
     root = Path(path).expanduser().resolve()
     root.mkdir(parents=True, exist_ok=True)
 
     compose_file = root / "docker-compose.yml"
     env_example_file = root / ".env.example"
     wakeup_sh = root / "wakeup_evolution.sh"
-    wakeup_ps1 = root / "wakeup_evolution.ps1"
 
     _write_text(compose_file, _DOCKER_COMPOSE, overwrite=overwrite)
     _write_text(env_example_file, _DOTENV_EXAMPLE, overwrite=overwrite)
 
-    # scripts: we leave UP_ARGS placeholder so user can choose detached/build
+    # Leave UP_ARGS placeholder empty in the file by default
     _write_text(wakeup_sh, _WAKEUP_SH.replace("${UP_ARGS}", ""), overwrite=overwrite)
-    _write_text(wakeup_ps1, _WAKEUP_PS1.replace("${UP_ARGS}", ""), overwrite=overwrite)
 
-    # Make sh executable on unix-ish systems
+    # Make .sh executable on unix-ish systems
     try:
         wakeup_sh.chmod(wakeup_sh.stat().st_mode | 0o111)
     except Exception:
@@ -212,10 +181,9 @@ def init_local_evolution(
         print("[devtools] Files:")
         print(f"  - {compose_file.name}")
         print(f"  - {env_example_file.name}  (copy to .env and fill secrets)")
-        print(f"  - {wakeup_sh.name}         (macOS/Linux convenience)")
-        print(f"  - {wakeup_ps1.name}        (Windows PowerShell convenience)")
+        print(f"  - {wakeup_sh.name}         (macOS/Linux; Windows via Git Bash/WSL)")
         print("[devtools] Requirements:")
-        print("  - Docker Desktop / Docker Engine installed")
+        print("  - Docker installed and running (daemon/desktop)")
         print("  - Run from the directory containing docker-compose.yml")
 
     return LocalEvolutionPaths(
@@ -223,18 +191,17 @@ def init_local_evolution(
         compose_file=compose_file,
         env_example_file=env_example_file,
         wakeup_sh=wakeup_sh,
-        wakeup_ps1=wakeup_ps1,
     )
 
 
 def local_evolution(path: str | os.PathLike[str] = ".") -> "LocalEvolutionStack":
     """Return a controller object for the local Evolution stack in `path`."""
+    root = Path(path).expanduser().resolve()
     paths = LocalEvolutionPaths(
-        root=Path(path).expanduser().resolve(),
-        compose_file=Path(path).expanduser().resolve() / "docker-compose.yml",
-        env_example_file=Path(path).expanduser().resolve() / ".env.example",
-        wakeup_sh=Path(path).expanduser().resolve() / "wakeup_evolution.sh",
-        wakeup_ps1=Path(path).expanduser().resolve() / "wakeup_evolution.ps1",
+        root=root,
+        compose_file=root / "docker-compose.yml",
+        env_example_file=root / ".env.example",
+        wakeup_sh=root / "wakeup_evolution.sh",
     )
     return LocalEvolutionStack(paths)
 
@@ -248,7 +215,11 @@ class LocalEvolutionStack:
     def start(self, detached: bool = False, build: bool = False, verbose: bool = True) -> None:
         """Start the stack (docker compose up)."""
         cmd = _compose_cmd()
-        args = [*cmd, "up"]
+        env_file, warn = _pick_env_file(self.paths.root)
+        if warn and verbose:
+            print(warn)
+
+        args = [*cmd, "--env-file", str(env_file), "up"]
         if build:
             args.append("--build")
         if detached:
@@ -266,16 +237,25 @@ class LocalEvolutionStack:
     def stop(self, verbose: bool = True) -> None:
         """Stop containers without removing volumes (docker compose stop)."""
         cmd = _compose_cmd()
+        env_file, warn = _pick_env_file(self.paths.root)
+        if warn and verbose:
+            print(warn)
+
         if verbose:
             print("[devtools] Stopping Evolution stack...")
-        _run([*cmd, "stop"], cwd=self.paths.root)
+        _run([*cmd, "--env-file", str(env_file), "stop"], cwd=self.paths.root)
 
     def down(self, volumes: bool = False, verbose: bool = True) -> None:
         """Tear down stack (docker compose down)."""
         cmd = _compose_cmd()
-        args = [*cmd, "down"]
+        env_file, warn = _pick_env_file(self.paths.root)
+        if warn and verbose:
+            print(warn)
+
+        args = [*cmd, "--env-file", str(env_file), "down"]
         if volumes:
             args.append("-v")
+
         if verbose:
             print("[devtools] Bringing down Evolution stack...")
         _run(args, cwd=self.paths.root)
@@ -283,7 +263,11 @@ class LocalEvolutionStack:
     def logs(self, service: Optional[str] = None, follow: bool = True) -> None:
         """Show logs (docker compose logs)."""
         cmd = _compose_cmd()
-        args = [*cmd, "logs"]
+        env_file, warn = _pick_env_file(self.paths.root)
+        if warn:
+            print(warn)
+
+        args = [*cmd, "--env-file", str(env_file), "logs"]
         if follow:
             args.append("-f")
         if service:
@@ -294,6 +278,53 @@ class LocalEvolutionStack:
 # -----------------------------
 # Internals
 # -----------------------------
+
+def _looks_like_env_file(text: str) -> bool:
+    """Heuristic: a valid .env is mostly KEY=VALUE lines (comments allowed)."""
+    lines = [ln.strip() for ln in text.splitlines() if ln.strip() and not ln.strip().startswith("#")]
+    if not lines:
+        return True
+    ok = 0
+    for ln in lines[:50]:
+        if "=" in ln and not ln.startswith('"""') and not ln.startswith("from ") and not ln.startswith("import "):
+            ok += 1
+    return ok >= max(1, min(3, len(lines)))
+
+
+def _pick_env_file(root: Path) -> Tuple[Path, Optional[str]]:
+    """Pick an env file for docker compose.
+
+    Prefers `.env` when it exists and looks valid. If `.env` exists but looks wrong,
+    fall back to `.env.example` and return a warning message.
+    """
+    env_path = root / ".env"
+    example_path = root / ".env.example"
+
+    if env_path.exists():
+        try:
+            sample = env_path.read_text(encoding="utf-8", errors="ignore")[:4000]
+        except Exception:
+            sample = ""
+        if _looks_like_env_file(sample):
+            return env_path, None
+
+        warn = (
+            "[devtools] ⚠️  Found a .env file but it doesn't look like KEY=VALUE lines. "
+            "Docker Compose may fail to parse it.\n"
+            "[devtools]     Fix: rename/remove that .env and create a real one from .env.example."
+        )
+        if example_path.exists():
+            return example_path, warn
+        return env_path, warn
+
+    if example_path.exists():
+        warn = (
+            "[devtools] ℹ️  No .env found; using .env.example.\n"
+            "[devtools]     Tip: copy .env.example -> .env and set AUTHENTICATION_API_KEY / POSTGRES_PASSWORD."
+        )
+        return example_path, warn
+
+    return env_path, None
 
 
 def _write_text(path: Path, content: str, overwrite: bool) -> None:
@@ -309,6 +340,13 @@ def _run(args: list[str], cwd: Path) -> None:
         raise RuntimeError(
             "Docker is not installed or not on PATH. Install Docker Desktop (macOS/Windows) or Docker Engine (Linux)."
         ) from e
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(
+            f"Docker Compose command failed (exit={e.returncode}).\n"
+            f"Command: {' '.join(args)}\n"
+            "Tip: if the error mentions parsing .env, open your .env and ensure it contains only KEY=VALUE lines.\n"
+            "You can also delete/rename a broken .env and copy .env.example -> .env."
+        ) from e
 
 
 def _compose_cmd() -> list[str]:
@@ -319,9 +357,13 @@ def _compose_cmd() -> list[str]:
     """
     docker = shutil.which("docker")
     if docker:
-        # Test whether `docker compose` is supported
         try:
-            subprocess.run([docker, "compose", "version"], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.run(
+                [docker, "compose", "version"],
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
             return [docker, "compose"]
         except Exception:
             pass
@@ -330,5 +372,4 @@ def _compose_cmd() -> list[str]:
     if docker_compose:
         return [docker_compose]
 
-    # Nothing found
     return ["docker", "compose"]

@@ -23,7 +23,7 @@ services:
       - TELEMETRY_URL=
 
       # =========================
-      # Auth (secret stays in .env)
+      # Auth (secret stays in .env / --env-file)
       # =========================
       - AUTHENTICATION_TYPE=apikey
       - AUTHENTICATION_API_KEY=${AUTHENTICATION_API_KEY}
@@ -58,7 +58,6 @@ services:
       - evolution-postgres-data:/var/lib/postgresql/data
 
     environment:
-      # Database credentials for the internal Postgres container
       - POSTGRES_DB=evolution
       - POSTGRES_USER=postgresql
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
