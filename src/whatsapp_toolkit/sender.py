@@ -1,7 +1,7 @@
 from typing import Optional
 import requests
 from .instance import WhatsAppInstance
-from .client import timeout_response
+from .utils import timeout_response, HttpResponse
 
 
 

@@ -1,30 +1,12 @@
-import requests
 from typing import Optional
-from functools import wraps
-from .utils import HttpResponse
 from .instance import WhatsAppInstance
 from .sender import WhatsAppSender
+#from .utils import HttpResponse, timeout_response
 
 
 
 
 
-
-def timeout_response(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except requests.Timeout:
-            print("La solicitud ha excedido el tiempo de espera.")
-            return HttpResponse(status_code=408, text="Timeout", json_data=None)
-        except requests.RequestException as e:
-            print(f"Error en la solicitud: {e}")
-            return HttpResponse(
-                status_code=500, text="Error", json_data={"error": str(e)}
-            )
-
-    return wrapper
 
 
 # Decorador para asegurar conexión antes de ejecutar métodos de WhatsappClient que lo requieran
