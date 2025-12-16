@@ -146,7 +146,7 @@ def init_local_evolution(
         root.mkdir(parents=True, exist_ok=True)
 
         compose_file = root / "docker-compose.yml"
-        env_example_file = root / ".env"
+        env_example_file = root / ".env.example"
         wakeup_sh = root / "wakeup_evolution.sh"
 
         _write_text(compose_file, _DOCKER_COMPOSE.replace("{VERSION}", version), overwrite=overwrite)

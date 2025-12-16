@@ -34,6 +34,87 @@ pip install whatsapp-toolkit
 
 ---
 
+## Arrancar el server local (integrado)
+
+La librería ya incluye un modo de **arranque del server** (Evolution API) pensado para desarrollo local, usando Docker Compose. El flujo de uso está tal cual en los tests (ver `test/test_wakpeup_evo.py`).
+
+### 1) Generar plantillas (docker-compose + env)
+
+Esto crea (en el directorio que elijas):
+
+- `docker-compose.yml`
+- `.env.example` (ejemplo; debes copiarlo a `.env` y completar secretos)
+- `wakeup_evolution.sh`
+
+```python
+from whatsapp_toolkit import devtools
+
+devtools.init_local_evolution(
+    path=".",
+    overwrite=False,
+    verbose=True,
+)
+```
+
+### 2) Configurar secretos para Docker
+
+Copia `.env.example` a `.env` y configura al menos:
+
+- `AUTHENTICATION_API_KEY` (la API key del server Evolution)
+- `POSTGRES_PASSWORD`
+
+Además, para el cliente Python, normalmente usarás:
+
+- `WHATSAPP_API_KEY`
+- `WHATSAPP_INSTANCE`
+- `WHATSAPP_SERVER_URL` (por defecto `http://localhost:8080/`)
+
+### 3) Levantar / ver logs / bajar el stack desde Python
+
+Ejemplo (idéntico al test):
+
+```python
+from whatsapp_toolkit import devtools
+
+stack = devtools.local_evolution(path=".")
+
+stack.start(
+    detached=False,
+    build=True,
+    verbose=True,
+)
+
+# Ver logs en vivo
+stack.logs(follow=True)
+```
+
+Comandos útiles:
+
+```python
+from whatsapp_toolkit import devtools
+
+stack = devtools.local_evolution(".")
+
+stack.start(detached=True)   # Levanta en background
+stack.stop()                 # Stop sin borrar volúmenes
+stack.down(volumes=False)    # Down (opcional: volumes=True para limpiar datos)
+stack.logs(service=None)     # o service="evolution-api"
+```
+
+### Alternativa: script shell
+
+Si prefieres, también puedes levantar con el script:
+
+```bash
+./wakeup_evolution.sh
+```
+
+UI del manager:
+
+- `http://localhost:8080/manager/`
+
+---
+
 ## Componentes principales
 
 ```python
