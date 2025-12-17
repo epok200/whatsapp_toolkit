@@ -22,3 +22,12 @@ test/tts_models/
 *.onnx.json
 
 tts_models/
+
+
+# Pruebas de webhook
+webhook/
+.env.example
+Dockerfile
+docker-compose.yml
+wakeup_evolution.sh
+requirements.txt
