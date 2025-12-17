@@ -1,12 +1,14 @@
-from dataclasses import dataclass
-from pathlib import Path
 import os
 import shutil
 import subprocess
+from dataclasses import dataclass
+from pathlib import Path
 from typing import Optional, Tuple
-from colorstreak import Logger as log
-from .templates import _DOCKER_COMPOSE, _DOTENV_EXAMPLE, _WAKEUP_SH, _DOCKERFILE , _MAIN_WEBHOOK_PY, _REQUIREMENTS_TXT
 
+from colorstreak import Logger as log
+
+from .templates import (_DOCKER_COMPOSE, _DOCKERFILE, _DOTENV_EXAMPLE,
+                        _MAIN_WEBHOOK_PY, _REQUIREMENTS_TXT, _WAKEUP_SH)
 
 # -----------------------------
 # API pública

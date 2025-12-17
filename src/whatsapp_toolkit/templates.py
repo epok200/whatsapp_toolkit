@@ -39,7 +39,7 @@ docker compose up${UP_ARGS}
 # ================================ MINIMAL PYTHON SCRIPT ==============================
 
 _MAIN_WEBHOOK_PY ="""
-from whatsapp_toolkit import webhook
+#from whatsapp_toolkit import webhook
 from fastapi import FastAPI
 from dotenv import load_dotenv
 import os
@@ -141,11 +141,11 @@ _DOCKER_COMPOSE = """services:
     whatsapp_webhook:
         build:
             context: .
-            dockerfile: Dockerfile.webhook
+            dockerfile: Dockerfile
         ports:
             - "8002:8002"
         env_file:
-            - ./.env
+            - ./webhook/.env
         restart: unless-stopped
 
 
@@ -160,14 +160,12 @@ volumes:
 _DOCKERFILE="""FROM python:3.13.11-slim
 WORKDIR /app
 
-COPY requirements.txt .
+COPY requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
 
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY webhook/
+COPY webhook/ /app/webhook/
 
 EXPOSE 8002
-
 CMD ["uvicorn", "webhook.main_webhook:app", "--host", "0.0.0.0", "--port", "8002"]
 """
 
