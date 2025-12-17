@@ -5,114 +5,7 @@ import shutil
 import subprocess
 from typing import Optional, Tuple
 from colorstreak import Logger as log
-
-
-_DOTENV_EXAMPLE = """# =========================================
-# WhatsApp Toolkit (Python) - configuración local/dev
-# =========================================
-# NOTA:
-# - Este es un archivo de EJEMPLO. Cópialo a `.env` y completa tus secretos.
-# - NO subas `.env` al repositorio.
-
-# --- Ajustes del cliente Python ---
-WHATSAPP_API_KEY=YOUR_EVOLUTION_API_KEY
-WHATSAPP_INSTANCE=fer
-WHATSAPP_SERVER_URL=http://localhost:8080/
-
-# --- Secretos compartidos de Docker Compose ---
-AUTHENTICATION_API_KEY=YOUR_EVOLUTION_API_KEY
-POSTGRES_PASSWORD=change_me
-"""
-
-_DOCKER_COMPOSE = """services:
-    evolution-api:
-        image: evoapicloud/evolution-api:v{VERSION}
-        restart: always
-        ports:
-            - "8080:8080"
-        volumes:
-            - evolution-instances:/evolution/instances
-
-        environment:
-            # =========================
-            # Identidad principal del servidor
-            # =========================
-            - SERVER_URL=localhost
-            - LANGUAGE=en
-            - CONFIG_SESSION_PHONE_CLIENT=Evolution API
-            - CONFIG_SESSION_PHONE_NAME=Chrome
-
-            # =========================
-            # Telemetría (apagada por defecto)
-            # =========================
-            - TELEMETRY=false
-            - TELEMETRY_URL=
-
-            # =========================
-            # Autenticación (el secreto permanece en .env / --env-file)
-            # =========================
-            - AUTHENTICATION_TYPE=apikey
-            - AUTHENTICATION_API_KEY=${AUTHENTICATION_API_KEY}
-            - AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES=true
-
-            # =========================
-            # Base de datos (configuración interna del stack)
-            # =========================
-            - DATABASE_ENABLED=true
-            - DATABASE_PROVIDER=postgresql
-            - DATABASE_CONNECTION_URI=postgresql://postgresql:${POSTGRES_PASSWORD}@evolution-postgres:5432/evolution
-            - DATABASE_SAVE_DATA_INSTANCE=true
-            - DATABASE_SAVE_DATA_NEW_MESSAGE=true
-            - DATABASE_SAVE_MESSAGE_UPDATE=true
-            - DATABASE_SAVE_DATA_CONTACTS=true
-            - DATABASE_SAVE_DATA_CHATS=true
-            - DATABASE_SAVE_DATA_LABELS=true
-            - DATABASE_SAVE_DATA_HISTORIC=true
-
-            # =========================
-            # Caché Redis (configuración interna del stack)
-            # =========================
-            - CACHE_REDIS_ENABLED=true
-            - CACHE_REDIS_URI=redis://evolution-redis:6379
-            - CACHE_REDIS_PREFIX_KEY=evolution
-            - CACHE_REDIS_SAVE_INSTANCES=true
-
-    evolution-postgres:
-        image: postgres:16-alpine
-        restart: always
-        volumes:
-            - evolution-postgres-data:/var/lib/postgresql/data
-
-        environment:
-            - POSTGRES_DB=evolution
-            - POSTGRES_USER=postgresql
-            - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-
-    evolution-redis:
-        image: redis:alpine
-        restart: always
-        volumes:
-            - evolution-redis-data:/data
-
-
-volumes:
-    evolution-instances:
-    evolution-postgres-data:
-    evolution-redis-data:
-"""
-
-_WAKEUP_SH = """#!/usr/bin/env bash
-set -euo pipefail
-
-# Este script está pensado para macOS/Linux y para Windows vía Git Bash o WSL.
-# NO intenta iniciar Docker Desktop/daemon por ti.
-
-echo "[devtools] Iniciando el stack de Evolution API (Docker Compose)"
-echo "[devtools] Abrir: http://localhost:8080/manager/"
-
-docker compose down || true
-docker compose up${UP_ARGS}
-"""
+from .templates import _DOCKER_COMPOSE, _DOTENV_EXAMPLE, _WAKEUP_SH, _DOCKERFILE , _MAIN_WEBHOOK_PY, _REQUIREMENTS_TXT
 
 
 # -----------------------------
@@ -125,14 +18,14 @@ class LocalEvolutionPaths:
         compose_file: Path
         env_example_file: Path
         wakeup_sh: Path
+        requirements_txt: Path
+        # Archivos del webhook
+        docker_file_webhook: Path
+        main_webhook_py: Path
+        env_webhook_dir: Path
 
 
-def init_local_evolution(
-        path: str | os.PathLike[str] = ".",
-        overwrite: bool = False,
-        verbose: bool = True,
-        version: str = "2.3.7",
-) -> LocalEvolutionPaths:
+def init_local_evolution(path: str | os.PathLike[str] = ".", overwrite: bool = False, verbose: bool = True, version: str = "2.3.7",) -> LocalEvolutionPaths:
         """Crea plantillas de desarrollo local en el directorio indicado.
 
         Crea (solo cuando faltan, a menos que overwrite=True):
@@ -145,13 +38,27 @@ def init_local_evolution(
         root = Path(path).expanduser().resolve()
         root.mkdir(parents=True, exist_ok=True)
 
+        # Archivos globales
         compose_file = root / "docker-compose.yml"
         env_example_file = root / ".env.example"
         wakeup_sh = root / "wakeup_evolution.sh"
+        requirements_txt = root / "requirements.txt"
+        
+        
+        # Archivos adicionales para el webhook
+        docker_file_webhook = root / "Dockerfile"
+        main_webhook_py = root /"webhook"/ "main_webhook.py"
+        env_webhook_dir = root / "webhook"/ ".env"
 
         _write_text(compose_file, _DOCKER_COMPOSE.replace("{VERSION}", version), overwrite=overwrite)
         _write_text(env_example_file, _DOTENV_EXAMPLE, overwrite=overwrite)
         _write_text(wakeup_sh, _WAKEUP_SH.replace("${UP_ARGS}", ""), overwrite=overwrite)
+        _write_text(requirements_txt, _REQUIREMENTS_TXT, overwrite=overwrite)
+        
+        # Archivos del webhook
+        _write_text(docker_file_webhook, _DOCKERFILE, overwrite=overwrite)
+        _write_text(main_webhook_py, _MAIN_WEBHOOK_PY, overwrite=overwrite)
+        _write_text(env_webhook_dir, _DOTENV_EXAMPLE, overwrite=overwrite)
 
         # Hacer que el script .sh sea ejecutable en sistemas tipo Unix
         try:
@@ -163,8 +70,12 @@ def init_local_evolution(
                 log.info(f"[devtools] ✅ Plantillas listas en: {root}")
                 log.info("[devtools] Archivos:")
                 log.library(f"  - {compose_file.name}")
+                log.library(f"  - {docker_file_webhook.name}    (Dockerfile para el webhook)")
                 log.library(f"  - {env_example_file.name}  (cópialo a .env y completa los secretos)")
                 log.library(f"  - {wakeup_sh.name}         (macOS/Linux; Windows vía Git Bash/WSL)")
+                log.library(f"  - webhook/{main_webhook_py.name} (ejemplo de webhook)")
+                log.library("  - webhook/.env              (configuración del webhook; copia y completa secretos)")
+                log.library(f"  - {requirements_txt.name}   (dependencias del webhook)")
                 log.info("[devtools] Requisitos:")
                 log.info("  - Docker instalado y ejecutándose (daemon/desktop)")
                 log.info("  - Ejecutar desde el directorio que contiene docker-compose.yml")
@@ -174,6 +85,11 @@ def init_local_evolution(
                 compose_file=compose_file,
                 env_example_file=env_example_file,
                 wakeup_sh=wakeup_sh,
+                requirements_txt=requirements_txt,
+                # Archivos del webhook
+                docker_file_webhook=docker_file_webhook,
+                main_webhook_py=main_webhook_py,
+                env_webhook_dir=env_webhook_dir,
         )
 
 
@@ -185,6 +101,11 @@ def local_evolution(path: str | os.PathLike[str] = ".") -> "LocalEvolutionStack"
                 compose_file=root / "docker-compose.yml",
                 env_example_file=root / ".env.example",
                 wakeup_sh=root / "wakeup_evolution.sh",
+                requirements_txt=root / "requirements.txt",
+                # Archivos del webhook
+                docker_file_webhook=root / "Dockerfile",
+                main_webhook_py=root / "webhook" / "main_webhook.py",
+                env_webhook_dir=root / "webhook" / ".env",
         )
         return LocalEvolutionStack(paths)
 
@@ -316,6 +237,7 @@ def _pick_env_file(root: Path) -> Tuple[Path, Optional[str]]:
 
 
 def _write_text(path: Path, content: str, overwrite: bool) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)  # Verificamos que el directorio exista
         if path.exists() and not overwrite:
                 return
         path.write_text(content, encoding="utf-8")
