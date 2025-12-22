@@ -273,12 +273,54 @@ client.delete_instance()       # Elimina la instancia actual
 # Forzar mostrar QR manualmente en cualquier momento
 client.connect_instance_qr()
 
-# Listar grupos (opcionalmente con participantes)
-groups = client.fetch_groups(get_participants=True)
+# Obtener grupos (2 sabores)
+# - raw: lista de dicts tal cual responde la API
+groups_raw = client.get_groups_raw(get_participants=True)
+
+# - typed: parsea/valida a modelos Pydantic (ver whatsapp_toolkit.types)
+groups = client.get_groups_typed(get_participants=True)
 
 # Forzar conexión a un número específico (cuando la API lo soporta)
 client.connect_number("5214771234567")
 ```
+
+### Obtener grupos (raw vs typed)
+
+La librería incluye una forma nueva y más cómoda de **obtener y trabajar con grupos**.
+
+- `client.get_groups_raw(get_participants=True)` devuelve `list[dict]` (JSON crudo del endpoint `/group/fetchAllGroups/{instance}`), útil si quieres guardarlo tal cual.
+- `client.get_groups_typed(get_participants=True)` devuelve un objeto `Groups` (Pydantic), útil para buscar/filtrar y trabajar con tipos.
+
+Ejemplo recomendado (similar a lo que hace [test/test_api.py](test/test_api.py)):
+
+```python
+from whatsapp_toolkit import WhatsappClient
+from whatsapp_toolkit.types import Groups
+
+client = WhatsappClient(API_KEY, SERVER_URL, INSTANCE)
+
+# Nota: estos métodos ya llaman internamente a ensure_connected()
+grupos: Groups | None = client.get_groups_typed(get_participants=True)
+if grupos is None:
+    raise RuntimeError("No se pudo obtener la lista de grupos")
+
+print(grupos)                 # resumen: cuántos grupos y cuántos fallaron
+print(grupos.count_by_kind()) # community_root / community_announce_child / regular_group
+
+# Buscar por texto (match parcial, con scoring simple)
+for g in grupos.search_group("club"):
+    print(g.id, g.subject, g.kind)
+
+# Buscar por ID exacto
+g = grupos.get_group_by_id("120363405715130432@g.us")
+if g:
+    print(g.subject, "participantes:", len(g.participants))
+```
+
+Notas:
+
+- Si llamas con `get_participants=False`, el endpoint puede devolver menos datos; en ese caso, `get_groups_typed()` puede marcar algunos grupos como inválidos y moverlos a `Groups.fails`.
+- Si necesitas persistir los resultados para analizarlos offline, usa `get_groups_raw()` y guárdalo como JSON.
 
 ---
 
