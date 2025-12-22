@@ -93,13 +93,17 @@ def _obtener_grupo(numero: str):
         log.error("❌ No se pudo obtener la lista de grupos.")
         return
     
-    # for grupo in grupos.groups:
-    #     log.debug((f"ID: {grupo.id} | Asunto: {grupo.subject} | Tipo: {grupo.kind} | "))
     
-    grupo_objetivo = "epok"
-    grupos_encontrados = grupos.search_group(grupo_objetivo)
+    grupos_encontrados = grupos.search_group("club")
+    log.info("Grupos encontrados con 'club':")
     for grupo in grupos_encontrados:
-        log.info((f"[ENCONTRADO] ID: {grupo.id} | Asunto: {grupo.subject} | Tipo: {grupo.kind} | "))
+        log.debug(grupo)
+        
+    id = "120363405715130432@g.us"
+    grupo = grupos.get_group_by_id(id)
+    log.info(f"Buscando grupo por ID: {id}")
+    if grupo:
+        log.info(grupo)
     
 
     

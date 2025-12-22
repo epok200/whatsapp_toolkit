@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from whatsapp_toolkit.types import GroupBase, Groups, Participant
+from whatsapp_toolkit.types import Groups
 from colorstreak import Logger as log
 
 
@@ -18,11 +18,13 @@ grupos.upload_groups(grupos_raw)
 print(f"Se cargaron {len(grupos.groups)} grupos.")
 print(f"Fallos: {len(grupos.fails)}")
 
-# grupos_encontrados = grupos.search_group("bot")
-# for grupo in grupos_encontrados:
-#     print(f"[ENCONTRADO] ID: {grupo.id} | Asunto: {grupo.subject} | Tipo: {grupo.kind} | ")
+grupos_encontrados = grupos.search_group("club")
+log.info("Grupos encontrados con 'bot':")
+for grupo in grupos_encontrados:
+    log.debug(grupo)
     
 id = "120363405715130432@g.us"
 grupo = grupos.get_group_by_id(id)
+log.info(f"Buscando grupo por ID: {id}")
 if grupo:
-    log.debug(grupo)
+    log.info(grupo)
