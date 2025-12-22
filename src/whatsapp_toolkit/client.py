@@ -1,7 +1,7 @@
 from typing import Optional
 from .instance import WhatsAppInstance
 from .sender import WhatsAppSender
-#from .utils import HttpResponse, timeout_response
+from .types import Groups
 
 
 
@@ -90,63 +90,66 @@ class WhatsappClient:
         return False
 
     @require_connection
-    def send_text(
-        self, number: str, text: str, link_preview: bool = True, delay_ms: int = 1000
-    ):
-        return self.sender.send_text(number, text, link_preview, delay_ms=delay_ms)
+    def send_text(self, number: str, text: str, link_preview: bool = True, delay_ms: int = 1000):
+        sender = self.sender
+        if sender is None:
+            return False
+        return sender.send_text(number, text, link_preview, delay_ms=delay_ms)
 
     @require_connection
-    def send_media(
-        self,
-        number: str,
-        media_b64: str,
-        filename: str,
-        caption: str,
-        mediatype: str = "document",
-        mimetype: str = "application/pdf",
-    ):
-        return self.sender.send_media(
-            number, media_b64, filename, caption, mediatype, mimetype
-        )
+    def send_media(self, number: str, media_b64: str, filename: str, caption: str, mediatype: str = "document", mimetype: str = "application/pdf",):
+        sender = self.sender
+        if sender is None:
+            return False
+        return sender.send_media(number, media_b64, filename, caption, mediatype, mimetype)
 
     @require_connection
-    def send_sticker(
-        self,
-        number: str,
-        sticker_b64: str,
-        delay: int = 0,
-        link_preview: bool = True,
-        mentions_everyone: bool = True,
-    ):
-        return self.sender.send_sticker(
-            number, sticker_b64, delay, link_preview, mentions_everyone
-        )
+    def send_sticker(self, number: str, sticker_b64: str, delay: int = 0, link_preview: bool = True, mentions_everyone: bool = True,):
+        sender = self.sender
+        if sender is None:
+            return False
+        return sender.send_sticker(number, sticker_b64, delay, link_preview, mentions_everyone)
 
     @require_connection
-    def send_location(
-        self,
-        number: str,
-        name: str,
-        address: str,
-        latitude: float,
-        longitude: float,
-        delay: int = 0,
-    ):
-        return self.sender.send_location(
-            number, name, address, latitude, longitude, delay
-        )
+    def send_location(self, number: str, name: str, address: str, latitude: float, longitude: float, delay: int = 0,):
+        sender = self.sender
+        if sender is None:
+            return False
+        return sender.send_location(number, name, address, latitude, longitude, delay)
 
     @require_connection
     def send_audio(self, number: str, audio_b64: str, delay: int = 0):
-        return self.sender.send_audio(number, audio_b64, delay)
+        sender = self.sender
+        if sender is None:
+            return False
+        return sender.send_audio(number, audio_b64, delay)
 
     @require_connection
     def connect_number(self, number: str):
-        return self.sender.connect(number)
+        sender = self.sender
+        if sender is None:
+            return False
+        return sender.connect(number)
 
     @require_connection
-    def obtener_grupos(self, get_participants: bool = True):
-        return self.sender.fetch_groups(get_participants)
+    def get_groups_raw(self, get_participants: bool = True) -> list[dict] | None:
+        sender = self.sender
+        if sender is None:
+            return None
+
+        response: list[dict] | None = sender.fetch_groups(get_participants)
+        if response is None:
+            return None
+        return response
+    
+    @require_connection
+    def get_groups_typed(self, get_participants: bool = True) -> Groups | None:
+        raw = self.get_groups_raw(get_participants=get_participants)
+        if not raw:
+            return None
+        g = Groups()
+        g.upload_groups(raw)
+        return g
 
     def create_instance(self):
         return self.instance.create_instance()

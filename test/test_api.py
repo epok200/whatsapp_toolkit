@@ -1,17 +1,19 @@
 import os
+from typing import Any
 
 from colorstreak import Logger as log
 from dotenv import load_dotenv
 
-from whatsapp_toolkit import (PDFGenerator, WhatsappClient, obtener_gif_base64,
-                              obtener_imagen_base64, generar_audio)
+from whatsapp_toolkit import (PDFGenerator, WhatsappClient, generar_audio,
+                              obtener_gif_base64, obtener_imagen_base64)
+from whatsapp_toolkit.types import Groups
 
 # =========== FUNCIONES AUXILIARES ============
 
 
 def _test_mensaje(numero: str, mensaje: str, cantidad: int):
     """ ENVIO DE MENSAJE DE TEXTO SIMPLE """
-    log.info("\n--- Enviando mensaje de texto ---")
+    log.info("--- Enviando mensaje de texto ---")
     reps = cantidad
     for i in range(1, reps + 1):
         mensaje_i = f"[{i}/{reps}]  {mensaje}"
@@ -20,7 +22,7 @@ def _test_mensaje(numero: str, mensaje: str, cantidad: int):
 
 def _test_pdf(numero: str, titulo: str, contenido: str, filename: str, caption: str):
     """ ENVIO DE PDF COMO DOCUMENTO """
-    log.info("\n--- Enviando PDF como documento ---")
+    log.info("--- Enviando PDF como documento ---")
     pdf_b64 = PDFGenerator.generar_pdf_base64(titulo, contenido)
     engine.send_media(
         numero,
@@ -32,7 +34,7 @@ def _test_pdf(numero: str, titulo: str, contenido: str, filename: str, caption: 
 
 def _test_stiker(numero: str):
     """ ENVIO DE STICKER """
-    log.info("\n--- Enviando sticker ---")
+    log.info("--- Enviando sticker ---")
     gif_b64 = obtener_gif_base64()
     engine.send_sticker(numero, gif_b64)
     
@@ -40,7 +42,7 @@ def _test_stiker(numero: str):
     
 def _test_imagen(numero: str, filename: str, caption: str):
     """ ENVIO DE IMAGEN COMO FOTO """
-    log.info("\n--- Enviando imagen en vez de stiker ---")
+    log.info("--- Enviando imagen en vez de stiker ---")
     imagen_b64 = obtener_imagen_base64()
     engine.send_media(
         numero,
@@ -54,7 +56,7 @@ def _test_imagen(numero: str, filename: str, caption: str):
 
 def _test_ubicacion(numero: str,name: str, address: str, latitude: float, longitude: float):
     """ ENVIO DE UBICACIÓN """
-    log.info("\n--- Enviando ubicación ---")
+    log.info("--- Enviando ubicación ---")
     engine.send_location(
         numero,
         name=name,
@@ -66,7 +68,7 @@ def _test_ubicacion(numero: str,name: str, address: str, latitude: float, longit
 
 def _test_audio(numero: str, texto: str):
     """ ENVIO DE MENSAJE DE AUDIO """
-    log.info("\n--- Enviando audio ---")
+    log.info("--- Enviando audio ---")
     audio_b64 = generar_audio(
         texto=texto,
         idioma="es",
@@ -83,15 +85,21 @@ def _test_audio(numero: str, texto: str):
         
 
 def _obtener_grupo(numero: str):
-    import json
-    log.info("\n--- Obteniendo lista de grupos ---")
-    respuesta = engine.obtener_grupos(get_participants=True)
     
-    grupos = json.dumps(respuesta, indent=2, ensure_ascii=False)
+    log.info("--- Obteniendo lista de grupos ---")
+    grupos: Groups | None = engine.get_groups_typed(get_participants=True)
 
-    with open("grupos_obtenidos.json", "w", encoding="utf-8") as f:
-        f.write(grupos)
-    log.info("Lista de grupos guardada en 'grupos_obtenidos.json'")
+    if grupos is None:
+        log.error("❌ No se pudo obtener la lista de grupos.")
+        return
+    
+    # for grupo in grupos.groups:
+    #     log.debug((f"ID: {grupo.id} | Asunto: {grupo.subject} | Tipo: {grupo.kind} | "))
+    
+    grupo_objetivo = "epok"
+    grupos_encontrados = grupos.search_group(grupo_objetivo)
+    for grupo in grupos_encontrados:
+        log.info((f"[ENCONTRADO] ID: {grupo.id} | Asunto: {grupo.subject} | Tipo: {grupo.kind} | "))
     
 
     

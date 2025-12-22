@@ -181,7 +181,7 @@ class WhatsAppSender:
         resp = self.post(f"/webhook/set/{self.instance}", payload)
         return resp.text
 
-    def fetch_groups(self, get_participants: bool = True) -> list:
+    def fetch_groups(self, get_participants: bool = True) -> list[dict]:
         """Obtiene todos los grupos y sus participantes."""
         params = {"getParticipants": str(get_participants).lower()}
         resp = self.get(f"/group/fetchAllGroups/{self.instance}", params=params)

@@ -17,3 +17,7 @@ grupos = Groups()
 grupos.upload_groups(grupos_raw)
 print(f"Se cargaron {len(grupos.groups)} grupos.")
 print(f"Fallos: {len(grupos.fails)}")
+
+grupos_encontrados = grupos.search_group("epok")
+for grupo in grupos_encontrados:
+    print(f"[ENCONTRADO] ID: {grupo.id} | Asunto: {grupo.subject} | Tipo: {grupo.kind} | ")

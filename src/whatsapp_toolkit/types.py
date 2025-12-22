@@ -1,7 +1,6 @@
 from typing import Optional, Literal
 from pydantic import BaseModel, ValidationError
 
-
 # =============================
 # MODELOS DE DATOS
 # =============================
@@ -82,7 +81,7 @@ class Groups(BaseModel):
         
         tokens = [token for token in q.split() if token]
         scored = []
-        
+        finded_groups: list[GroupBase] = []
         for group in self.groups:
             subject = (group.subject or "").lower()
             score = 0
@@ -103,5 +102,5 @@ class Groups(BaseModel):
             # Ordenamos por puntiaje
             scored.sort(key=lambda x: x[0], reverse=True)
             
-            finded_groups: list[GroupBase] = [group for score, group in scored]
-            return finded_groups[:limit]
+            finded_groups = [group for score, group in scored]
+        return finded_groups[:limit]
