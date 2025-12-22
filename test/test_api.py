@@ -66,7 +66,7 @@ def _test_ubicacion(numero: str,name: str, address: str, latitude: float, longit
 
 def _test_audio(numero: str, texto: str):
     """ ENVIO DE MENSAJE DE AUDIO """
-    print("\n--- Enviando audio ---")
+    log.info("\n--- Enviando audio ---")
     audio_b64 = generar_audio(
         texto=texto,
         idioma="es",
@@ -79,11 +79,27 @@ def _test_audio(numero: str, texto: str):
         print(f"[AUDIO] Respuesta API: {resp_audio}")
     else:
         print("⚠️  Saltando envío de audio: no se pudo generar el audio (Piper falló o no está configurado).")
+        
+        
+
+def _obtener_grupo(numero: str):
+    import json
+    log.info("\n--- Obteniendo lista de grupos ---")
+    respuesta = engine.obtener_grupos(get_participants=True)
+    
+    grupos = json.dumps(respuesta, indent=2, ensure_ascii=False)
+
+    with open("grupos_obtenidos.json", "w", encoding="utf-8") as f:
+        f.write(grupos)
+    log.info("Lista de grupos guardada en 'grupos_obtenidos.json'")
+    
+
+    
 
 
 # ============ PRUEBAS BÁSICAS DE LA API CRUDA ============
 
-def iniciar_prueba_api_cruda(numero:str, mensaje: bool = True, pdf: bool = False, sticker: bool = False, imagen: bool = False, ubicacion: bool = False, enviar_audio: bool = False):
+def iniciar_prueba_api_cruda(numero:str, mensaje: bool = False, pdf: bool = False, sticker: bool = False, imagen: bool = False, ubicacion: bool = False, enviar_audio: bool = False, obtener_grupo: bool = False):
     """Pruebas básicas de la API cruda de Envole (envío de mensajes, medios, audio, ubicación, etc.)."""
     
     if mensaje:
@@ -127,11 +143,15 @@ def iniciar_prueba_api_cruda(numero:str, mensaje: bool = True, pdf: bool = False
          Por último, este párrafo final sirve para cerrar la prueba con una cadencia suave y comprensible. Si todo funciona correctamente, el resultado debería ser un audio agradable, estable y fácil de entender, ideal para utilizarse en demostraciones, tutoriales o mensajes automatizados de alta calidad.
          """
         _test_audio(numero=numero, texto=texto)
+        
+    
+    if obtener_grupo:
+        _obtener_grupo(numero=numero)
     
     
 # ============ VARIABLS DE ENTORNO ============
 
-load_dotenv()
+load_dotenv(".env.example")
 
 
 WHATSAPP_API_KEY=os.getenv("WHATSAPP_API_KEY", "")
@@ -187,11 +207,13 @@ def get_chat_id(name: str) -> str:
 numero = get_chat_id("yo")
 
 
-iniciar_prueba_api_cruda(numero, 
-                         mensaje=True, 
-                         pdf=True, 
-                         sticker=True,
-                         imagen=True, 
-                         ubicacion=True,
-                         enviar_audio=True
+iniciar_prueba_api_cruda(
+    numero, 
+    # mensaje=True, 
+    # pdf=False, 
+    # sticker=True,
+    # imagen=True, 
+    # ubicacion=True,
+    # enviar_audio=True,
+    obtener_grupo = True
 )

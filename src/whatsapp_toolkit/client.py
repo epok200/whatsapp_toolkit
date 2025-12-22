@@ -145,7 +145,7 @@ class WhatsappClient:
         return self.sender.connect(number)
 
     @require_connection
-    def fetch_groups(self, get_participants: bool = True):
+    def obtener_grupos(self, get_participants: bool = True):
         return self.sender.fetch_groups(get_participants)
 
     def create_instance(self):
