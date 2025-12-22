@@ -1,13 +1,23 @@
-from typing import Optional, Literal
-from pydantic import BaseModel, ValidationError
+from typing import Optional, Literal, Any
+from pydantic import BaseModel, ValidationError, Field, ConfigDict
+from pydantic_core import ErrorDetails
 
 # =============================
 # MODELOS DE DATOS
 # =============================
-class Participant(BaseModel):
+
+class Schema(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+        validate_assignment=True,
+    )
+    
+
+
+class Participant(Schema):    
     id: str
-    admin: Optional[str] = None          # "admin" | "superadmin" | None
-    phoneNumber: Optional[str] = None    # a veces no viene ojito
+    admin: Optional[Literal["admin", "superadmin"]] = None
+    phoneNumber: Optional[str] = None   
 
     @property
     def is_admin(self) -> bool:
@@ -18,7 +28,7 @@ class Participant(BaseModel):
         return self.admin == "superadmin"
 
 
-class GroupBase(BaseModel):
+class GroupBase(Schema):
     # obligatorios
     id: str
     subject: str
@@ -30,7 +40,7 @@ class GroupBase(BaseModel):
     announce: bool
     isCommunity: bool
     isCommunityAnnounce: bool
-    participants: list[Participant]
+    participants: list[Participant] = Field(default_factory=list)
     
     # opcionales (por tus variantes)
     owner: Optional[str] = None
@@ -61,24 +71,28 @@ class GroupBase(BaseModel):
         texto += f" Created at: {self.creation}\n"
         texto += f" Restrict: {self.restrict}\n"
         texto += f" Announce: {self.announce}\n"
-        texto += f" Participants:\n"
+        if not self.participants:
+            texto += " Participants: (NO CARGADOS))\n"
+            return texto
+        
+        texto += " Participants:\n"
         for p in self.participants:
-            texto += f"   - ID: {p.id}| phoneNumber: {p.phoneNumber} | Admin: {p.admin}\n"
+            texto += f"==== [ID: {p.id}| phoneNumber: {p.phoneNumber} | Admin: {p.admin}] ====\n"
         return texto
 
 
 
-class Groups(BaseModel):
-    groups: list[GroupBase] = []
-    fails: list[tuple[Optional[str], Optional[str], str]] = []
+class Groups(Schema):    
+    groups: list[GroupBase] = Field(default_factory=list)
+    fails: list[tuple[Optional[str], Optional[str], list[ErrorDetails]]] = Field(default_factory=list)
     
     
-    def upload_groups(self, groups_raw: list[dict]) -> None:
+    def upload_groups(self, groups_raw: list[dict[str, Any]]) -> None:
         for group in groups_raw:
             try:
                 self.groups.append(GroupBase.model_validate(group))
             except ValidationError as e:
-                self.fails.append((group.get("id"),group.get("subject"),str(e)))
+                self.fails.append((group.get("id"), group.get("subject"), e.errors()))
     
     
     def count_by_kind(self) -> dict[str, int]:
@@ -96,15 +110,18 @@ class Groups(BaseModel):
         return None
     
     
-    def get_gruop_by_subject(self, subject: str) -> Optional[GroupBase]:
+    def get_group_by_subject(self, subject: str) -> Optional[GroupBase]:
         for group in self.groups:
             if group.subject == subject:
                 return group
         return None
     
     
-    def search_group(self, query: str, limit: int = 10):
+    def search_group(self, query: str, limit: int = 10) -> list[GroupBase]:
         q = query.strip().lower()
+        
+        if not q:
+            return []
         
         tokens = [token for token in q.split() if token]
         scored = []
@@ -126,14 +143,16 @@ class Groups(BaseModel):
             if score > 0:
                 scored.append((score,group))
             
-            # Ordenamos por puntiaje
-            scored.sort(key=lambda x: x[0], reverse=True)
             
-            finded_groups = [group for score, group in scored]
+        # Ordenamos por puntiaje
+        scored.sort(key=lambda x: x[0], reverse=True)
+        finded_groups = [group for score, group in scored]
         return finded_groups[:limit]
     
-    def __len__(self):
+    
+    def __len__(self) -> int:
         return len(self.groups)
+    
     
     def __str__(self) -> str:
         texto = f"Groups: {len(self.groups)} grupos cargados.\n"

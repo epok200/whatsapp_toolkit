@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 from whatsapp_toolkit import (PDFGenerator, WhatsappClient, generar_audio,
                               obtener_gif_base64, obtener_imagen_base64)
-from whatsapp_toolkit.types import Groups
+from whatsapp_toolkit.schemas import Groups
 
 # =========== FUNCIONES AUXILIARES ============
 
@@ -85,26 +85,39 @@ def _test_audio(numero: str, texto: str):
         
 
 def _obtener_grupo(numero: str):
-    
+    from time import perf_counter
     log.info("--- Obteniendo lista de grupos ---")
+    start_time_all = perf_counter()
     grupos: Groups | None = engine.get_groups_typed(get_participants=True)
-
+    stop_time  = perf_counter()
+    tiempo_api = stop_time - start_time_all
+    
     if grupos is None:
         log.error("❌ No se pudo obtener la lista de grupos.")
         return
     
+    log.debug(f"Grupos obtenidos: {grupos})")
     id = "120363405715130432@g.us"
     
     grupos_encontrados = grupos.search_group("bot")
     log.info("Grupos encontrados con 'bot':")
+    start_time = perf_counter()
     for grupo in grupos_encontrados:
-        engine.send_text(id, str(grupo))
-        
-        
+        log.debug(grupo)
+    end_time = perf_counter()
+    tiempo_busqueda = end_time - start_time
+    
+    start_time = perf_counter()
     grupo = grupos.get_group_by_id(id)
+    end_time = perf_counter()
+    tiempo_busqueda_id = end_time - start_time
+    
     log.info(f"Buscando grupo por ID: {id}")
     if grupo:
-        engine.send_text(id, str(grupo))
+        log.debug(grupo)
+    end_time = perf_counter()
+    elapsed_time = end_time - start_time_all
+    log.info(f"Tiempo total API: {tiempo_api:.4f} s | Tiempo búsqueda: {tiempo_busqueda:.4f} s | Tiempo búsqueda por ID: {tiempo_busqueda_id:.4f} s | Tiempo total: {elapsed_time:.4f} s")
     
 
     
