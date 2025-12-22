@@ -52,6 +52,19 @@ class GroupBase(BaseModel):
             return "regular_group"
 
         return "unknown"
+    
+    def __str__(self) -> str:
+        texto = f"Group ID: {self.id}\n"
+        texto += f" Subject: {self.subject}\n"
+        texto += f" Kind: {self.kind}\n"
+        texto += f" Size: {self.size} participantes\n"
+        texto += f" Created at: {self.creation}\n"
+        texto += f" Restrict: {self.restrict}\n"
+        texto += f" Announce: {self.announce}\n"
+        texto += f" Participants:\n"
+        for p in self.participants:
+            texto += f"   - ID: {p.id} | Admin: {p.admin}\n"
+        return texto
 
 
 
@@ -74,6 +87,20 @@ class Groups(BaseModel):
             k = g.kind
             kind_counter[k] = kind_counter.get(k, 0) + 1
         return kind_counter
+    
+    
+    def get_group_by_id(self, group_id: str) -> Optional[GroupBase]:
+        for group in self.groups:
+            if group.id == group_id:
+                return group
+        return None
+    
+    
+    def get_gruop_by_subject(self, subject: str) -> Optional[GroupBase]:
+        for group in self.groups:
+            if group.subject == subject:
+                return group
+        return None
     
     
     def search_group(self, query: str, limit: int = 10):
@@ -104,3 +131,11 @@ class Groups(BaseModel):
             
             finded_groups = [group for score, group in scored]
         return finded_groups[:limit]
+    
+    def __len__(self):
+        return len(self.groups)
+    
+    def __str__(self) -> str:
+        texto = f"Groups: {len(self.groups)} grupos cargados.\n"
+        texto += f"Fails: {len(self.fails)} grupos con errores de validación.\n"
+        return texto
