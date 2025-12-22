@@ -93,17 +93,18 @@ def _obtener_grupo(numero: str):
         log.error("❌ No se pudo obtener la lista de grupos.")
         return
     
-    
-    grupos_encontrados = grupos.search_group("club")
-    log.info("Grupos encontrados con 'club':")
-    for grupo in grupos_encontrados:
-        log.debug(grupo)
-        
     id = "120363405715130432@g.us"
+    
+    grupos_encontrados = grupos.search_group("bot")
+    log.info("Grupos encontrados con 'bot':")
+    for grupo in grupos_encontrados:
+        engine.send_text(id, str(grupo))
+        
+        
     grupo = grupos.get_group_by_id(id)
     log.info(f"Buscando grupo por ID: {id}")
     if grupo:
-        log.info(grupo)
+        engine.send_text(id, str(grupo))
     
 
     

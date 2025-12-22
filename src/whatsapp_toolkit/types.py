@@ -63,7 +63,7 @@ class GroupBase(BaseModel):
         texto += f" Announce: {self.announce}\n"
         texto += f" Participants:\n"
         for p in self.participants:
-            texto += f"   - ID: {p.id} | Admin: {p.admin}\n"
+            texto += f"   - ID: {p.id}| phoneNumber: {p.phoneNumber} | Admin: {p.admin}\n"
         return texto
 
 
