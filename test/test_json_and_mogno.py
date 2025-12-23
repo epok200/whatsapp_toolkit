@@ -21,15 +21,11 @@ class MongoCacheBackend:
     _collection: Optional[Collection] = None
     
     
-    def _ensure(self) -> Collection:
-        log.debug(f"[cache] [{__name__}] db_name={self.db_name}, collection_name={self.collection_name}, ttl_seconds={self.ttl_seconds}")
-        
+    def _ensure(self) -> Collection:        
         if self._client is None:
-            log.debug("[cache] Conectando a MongoDB ...")
             self._client = MongoClient(self.uri, serverSelectionTimeoutMS=1500)
         
         if self._collection is None:
-            log.debug("[cache] Seleccionando colección ...")
             db = self._client[self.db_name]
             self._collection = db[self.collection_name]
         
@@ -39,20 +35,15 @@ class MongoCacheBackend:
         
             
         if not self._indexes_ready:
-            log.debug("[cache] Creando índices ...")
-            self.ttl_logic(self._collection)
+            self._ttl_logic(self._collection)
             self._indexes_ready = True
-            log.debug("[cache] Índices creados ✅")
             
-        else:
-            log.debug("[cache] Índices ya creados previamente ✅")
             
         return self._collection
 
 
-    def ttl_logic(self, col: Collection) -> None:
+    def _ttl_logic(self, col: Collection) -> None:
         """ Asegura que el índice del ttl esté creado correctamente. """
-        log.debug(f"[cache] Asegurando índices (ttl_seconds={self.ttl_seconds}) ...")
 
         # Siempre aseguramos un índice único en 'key'
         col.create_index("key", unique=True)
@@ -71,38 +62,36 @@ class MongoCacheBackend:
 
         # Si el índice TTL existe pero el TTL difiere, lo eliminamos para poder recrearlo
         if ttl_index_name and current_ttl != self.ttl_seconds:
-            log.debug(f"[cache] TTL desajustado: mongo={current_ttl} vs código={self.ttl_seconds}. Recreando índice TTL...")
             col.drop_index(ttl_index_name)
             ttl_index_name = None
 
         # Si falta, creamos el índice TTL
         if not ttl_index_name:
-            log.debug(f"[cache] Creando índice TTL en created_at expireAfterSeconds={self.ttl_seconds}")
             col.create_index("created_at", expireAfterSeconds=self.ttl_seconds)
 
-        log.debug("[cache] Índices asegurados ✅")
 
-
+    # ========== MÉTODOS PÚBLICOS ==========
+    def warmup(self) -> None:
+        """ Inicializa la conexión y asegura los índices. """
+        self._ensure()
+    
+    
     def get(self, key: str) -> Optional[dict[str, Any]]:
-        log.debug(f"[cache] Mongo get key={key}")
+        """ Obtiene un documento de la caché por su clave. """
         try:
             col: Collection = self._ensure()
             doc = col.find_one({"key": key})
-            if doc is None:
-                log.debug(f"[cache] Mongo get key={key} no fue encontrado")
-            else:
-                created_at = doc.get("created_at")
-                log.debug(f"[cache] Mongo get key={key} encontrado, creado en {created_at}")
             return doc
         except errors.PyMongoError as e:
             log.error(f"[cache] Mongo get fallo: {e}")
             return None
 
+
     def set(self, key: str, doc: dict[str, Any]) -> None:
+        """ Guarda un documento en la caché bajo la clave especificada. """
         try:
             col: Collection = self._ensure()
             col.update_one({"key": key}, {"$set": doc}, upsert=True)
-            log.debug(f"[cache] Mongo set key={key} guardado correctamente")
         except errors.PyMongoError as e:
             log.error(f"[cache] Mongo set fallo: {e}")
 
@@ -180,6 +169,7 @@ cache_engine = MongoCacheBackend(
     uri=URK_MONGO,
     ttl_seconds=5,
 )
+cache_engine.warmup()
 
 engine = WhatsappClientFake(
     cache=cache_engine,

@@ -1,11 +1,16 @@
 import os
-from typing import Any
 
 from colorstreak import Logger as log
 from dotenv import load_dotenv
 
-from whatsapp_toolkit import (PDFGenerator, WhatsappClient, generar_audio,
-                              obtener_gif_base64, obtener_imagen_base64)
+from whatsapp_toolkit import (
+    PDFGenerator,
+    WhatsappClient,
+    MongoCacheBackend,
+    generar_audio,
+    obtener_gif_base64,
+    obtener_imagen_base64,
+)
 from whatsapp_toolkit.schemas import Groups
 
 # =========== FUNCIONES AUXILIARES ============
@@ -84,11 +89,11 @@ def _test_audio(numero: str, texto: str):
         
         
 
-def _obtener_grupo(numero: str):
+def _obtener_grupo(numero: str, cache: bool = True):
     from time import perf_counter
     log.info("--- Obteniendo lista de grupos ---")
     start_time_all = perf_counter()
-    grupos: Groups | None = engine.get_groups_typed(get_participants=True)
+    grupos: Groups | None = engine.get_groups_typed(get_participants=True, cache=cache)
     stop_time  = perf_counter()
     tiempo_api = stop_time - start_time_all
     
@@ -97,27 +102,7 @@ def _obtener_grupo(numero: str):
         return
     
     log.debug(f"Grupos obtenidos: {grupos})")
-    id = "120363405715130432@g.us"
-    
-    grupos_encontrados = grupos.search_group("bot")
-    log.info("Grupos encontrados con 'bot':")
-    start_time = perf_counter()
-    for grupo in grupos_encontrados:
-        log.debug(grupo)
-    end_time = perf_counter()
-    tiempo_busqueda = end_time - start_time
-    
-    start_time = perf_counter()
-    grupo = grupos.get_group_by_id(id)
-    end_time = perf_counter()
-    tiempo_busqueda_id = end_time - start_time
-    
-    log.info(f"Buscando grupo por ID: {id}")
-    if grupo:
-        log.debug(grupo)
-    end_time = perf_counter()
-    elapsed_time = end_time - start_time_all
-    log.info(f"Tiempo total API: {tiempo_api:.4f} s | Tiempo búsqueda: {tiempo_busqueda:.4f} s | Tiempo búsqueda por ID: {tiempo_busqueda_id:.4f} s | Tiempo total: {elapsed_time:.4f} s")
+    log.info(f"Tiempo total API: {tiempo_api:.4f} s")
     
 
     
@@ -172,7 +157,7 @@ def iniciar_prueba_api_cruda(numero:str, mensaje: bool = False, pdf: bool = Fals
         
     
     if obtener_grupo:
-        _obtener_grupo(numero=numero)
+        _obtener_grupo(numero=numero, cache=True)
     
     
 # ============ VARIABLS DE ENTORNO ============
@@ -189,9 +174,24 @@ API_KEY : str = WHATSAPP_API_KEY
 INSTANCE : str = WHATSAPP_INSTANCE
 SERVER_URL : str = WHATSAPP_SERVER_URL
 
+# ============ CACHCE ENGINE ============
+URL_MONGO = os.getenv("URL_MONGO", "")
+
+
+cache_engine = MongoCacheBackend(
+    uri=URL_MONGO,
+    ttl_seconds=30,
+)
+cache_engine.warmup()
+
 
 # ============ INICIALIZAR CLIENTE DE WHATSAPP ============
-engine = WhatsappClient(API_KEY, SERVER_URL, INSTANCE)
+engine = WhatsappClient(
+    API_KEY, 
+    SERVER_URL, 
+    INSTANCE,
+    cache=cache_engine,
+)
 
 # ============ CONTACTOS Y GRUPOS ============
 
