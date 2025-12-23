@@ -93,16 +93,18 @@ def _obtener_grupo(numero: str, cache: bool = True):
     from time import perf_counter
     log.info("--- Obteniendo lista de grupos ---")
     start_time_all = perf_counter()
-    grupos: Groups | None = engine.get_groups_typed(get_participants=True, cache=cache)
+    grupos: Groups | None = engine.get_groups_typed(get_participants=False, cache=cache)
     stop_time  = perf_counter()
-    tiempo_api = stop_time - start_time_all
     
     if grupos is None:
         log.error("❌ No se pudo obtener la lista de grupos.")
         return
     
-    log.debug(f"Grupos obtenidos: {grupos})")
-    log.info(f"Tiempo total API: {tiempo_api:.4f} s")
+    conteo_por_tipo = grupos.count_by_kind()
+    tiempo_api = stop_time - start_time_all
+    log.debug(f"✅ Grupos obtenidos (tiempo API: {tiempo_api:.2f} segundos):")
+    log.debug(conteo_por_tipo)
+    
     
 
     
@@ -175,21 +177,22 @@ INSTANCE : str = WHATSAPP_INSTANCE
 SERVER_URL : str = WHATSAPP_SERVER_URL
 
 # ============ CACHCE ENGINE ============
+# EJEMPLO DE UNA URL: mongodb://usuario:contraseña@localhost:27017/mi_basededatos
 URL_MONGO = os.getenv("URL_MONGO", "")
 
 
 cache_engine = MongoCacheBackend(
     uri=URL_MONGO,
-    ttl_seconds=30,
+    ttl_seconds=1000,
 )
 cache_engine.warmup()
 
 
 # ============ INICIALIZAR CLIENTE DE WHATSAPP ============
 engine = WhatsappClient(
-    API_KEY, 
-    SERVER_URL, 
-    INSTANCE,
+    api_key=API_KEY, 
+    server_url=SERVER_URL, 
+    instance_name=INSTANCE,
     cache=cache_engine,
 )
 

@@ -1,6 +1,8 @@
 
 # Whatsapp Toolkit
 
+Versión: **1.5.1**
+
 Librería ligera para enviar mensajes de WhatsApp a través de la API de Envole (WhatsApp Baileys).
 
 Permite:
@@ -157,11 +159,12 @@ SERVER_URL = os.getenv("WHATSAPP_SERVER_URL", "http://localhost:8080/")
 
 client = WhatsappClient(API_KEY, SERVER_URL, INSTANCE)
 
-# Opcional pero recomendado: asegura la conexión (muestra QR si hace falta)
-client.ensure_connected()
+# Si la instancia aún no está enlazada, muestra QR y escanea con tu WhatsApp
+client.connect_instance_qr()
 ```
 
-`ensure_connected()` intentará varias veces enlazar la instancia mostrando un código QR hasta que quede conectada.
+Nota: `WhatsappClient` inicializa internamente el sender cuando detecta que la instancia ya está enlazada.
+Si acabas de escanear el QR, puede ser necesario reiniciar el proceso y crear un nuevo `WhatsappClient`.
 
 ---
 
@@ -277,7 +280,7 @@ client.connect_instance_qr()
 # - raw: lista de dicts tal cual responde la API
 groups_raw = client.get_groups_raw(get_participants=True)
 
-# - typed: parsea/valida a modelos Pydantic (ver whatsapp_toolkit.types)
+# - typed: parsea/valida a modelos Pydantic (ver whatsapp_toolkit.schemas)
 groups = client.get_groups_typed(get_participants=True)
 
 # Forzar conexión a un número específico (cuando la API lo soporta)
@@ -295,11 +298,13 @@ Ejemplo recomendado (similar a lo que hace [test/test_api.py](test/test_api.py))
 
 ```python
 from whatsapp_toolkit import WhatsappClient
-from whatsapp_toolkit.types import Groups
+from whatsapp_toolkit.schemas import Groups
 
 client = WhatsappClient(API_KEY, SERVER_URL, INSTANCE)
 
-# Nota: estos métodos ya llaman internamente a ensure_connected()
+# Si la instancia aún no está enlazada, muestra QR y escanea
+# client.connect_instance_qr()
+
 grupos: Groups | None = client.get_groups_typed(get_participants=True)
 if grupos is None:
     raise RuntimeError("No se pudo obtener la lista de grupos")
@@ -322,6 +327,53 @@ Notas:
 - Si llamas con `get_participants=False`, el endpoint puede devolver menos datos; en ese caso, `get_groups_typed()` puede marcar algunos grupos como inválidos y moverlos a `Groups.fails`.
 - Si necesitas persistir los resultados para analizarlos offline, usa `get_groups_raw()` y guárdalo como JSON.
 
+### Cache de grupos (MongoDB)
+
+Para evitar pedir los grupos a la API en cada ejecución, puedes activar cache persistente usando `MongoCacheBackend`.
+
+Cómo funciona:
+
+- La clave de cache se calcula por instancia y por el flag `get_participants`.
+- Se guarda un “snapshot” en Mongo con campo `created_at` y un índice TTL. Cuando el documento expira, Mongo lo elimina automáticamente.
+- Para usarlo, crea el backend y pásalo a `WhatsappClient(..., cache=backend)`. Luego llama `get_groups_typed(..., cache=True)`.
+
+Ejemplo (basado en [test/test_api.py](test/test_api.py)):
+
+```python
+import os
+from whatsapp_toolkit import WhatsappClient, MongoCacheBackend
+from whatsapp_toolkit.schemas import Groups
+
+API_KEY = os.getenv("WHATSAPP_API_KEY", "")
+INSTANCE = os.getenv("WHATSAPP_INSTANCE", "con")
+SERVER_URL = os.getenv("WHATSAPP_SERVER_URL", "http://localhost:8080/")
+URL_MONGO = os.getenv("URL_MONGO", "")  # ej: mongodb://user:pass@localhost:27017/db
+
+cache_engine = MongoCacheBackend(
+    uri=URL_MONGO,
+    ttl_seconds=1000,  # segundos
+)
+cache_engine.warmup()  # asegura conexión + índices
+
+client = WhatsappClient(
+    api_key=API_KEY,
+    server_url=SERVER_URL,
+    instance_name=INSTANCE,
+    cache=cache_engine,
+)
+
+grupos: Groups | None = client.get_groups_typed(
+    get_participants=False,
+    cache=True,  # <- usa Mongo primero; si no hay, pega a la API y guarda snapshot
+)
+print(grupos.count_by_kind() if grupos else "Sin grupos")
+```
+
+Notas:
+
+- Si Mongo no está disponible, el cliente no revienta: el cache registra el error y sigue intentando obtener desde la API.
+- Si cambias `ttl_seconds`, el backend ajusta el índice TTL recreándolo si hace falta.
+
 ---
 
 ## Flujo de prueba completo (similar a test_api_cruda)
@@ -337,7 +389,9 @@ INSTANCE = os.getenv("WHATSAPP_INSTANCE", "con")
 SERVER_URL = os.getenv("WHATSAPP_SERVER_URL", "http://localhost:8080/")
 
 client = WhatsappClient(API_KEY, SERVER_URL, INSTANCE)
-client.ensure_connected()
+
+# Si la instancia aún no está enlazada, muestra QR y escanea
+client.connect_instance_qr()
 
 numero = "5214771234567"  # tu número o un grupo
 

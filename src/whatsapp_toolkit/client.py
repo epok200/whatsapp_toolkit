@@ -303,6 +303,7 @@ class WhatsappClient(BaseClient):
         if len(groups) == 0:
             return None
         return groups
+    
 
     def create_instance(self):
         return self._instance.create_instance()
