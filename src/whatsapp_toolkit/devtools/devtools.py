@@ -7,8 +7,14 @@ from typing import Optional, Tuple
 
 from colorstreak import Logger as log
 
-from ..templates import (_DOCKER_COMPOSE, _DOCKERFILE, _DOTENV_EXAMPLE,
-                        _MAIN_WEBHOOK_PY, _REQUIREMENTS_TXT, _WAKEUP_SH)
+from whatsapp_toolkit.devtools.templates import (
+        _DOCKER_COMPOSE,
+        _DOCKERFILE,
+        _DOTENV_EXAMPLE,
+        _MAIN_WEBHOOK_PY,
+        _REQUIREMENTS_TXT,
+        _WAKEUP_SH,
+)
 
 # -----------------------------
 # API pública

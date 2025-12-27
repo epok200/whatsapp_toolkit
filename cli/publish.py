@@ -11,41 +11,49 @@ from colorstreak import Logger as log
 
 app = typer.Typer(add_completion=False)
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-PYPROJECT = REPO_ROOT / "pyproject.toml"
-DIST_DIR = REPO_ROOT / "dist"
+
+def repo_root() -> Path:
+    p = Path(__file__).resolve()
+    for parent in (p.parent, *p.parents):
+        if (parent / "pyproject.toml").exists():
+            return parent
+    raise typer.BadParameter(
+        "No encuentro pyproject.toml hacia arriba; corre este comando dentro del repo."
+    )
 
 
-def uv_sync():
-    subprocess.run(["uv", "sync"], cwd=REPO_ROOT, check=True)
+def uv_sync(root: Path) -> None:
+    subprocess.run(["uv", "sync"], cwd=root, check=True)
 
 
-def get_version() -> str:
-    uv_sync()
-    data = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
+def get_version(root: Path) -> str:
+    data = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
     return data["project"]["version"]
 
 
 @app.command()
 def publish(env_file: str = ".env.secret"):
+    root = repo_root()
     # Load token from repo root/.env.secret
-    load_dotenv(REPO_ROOT / env_file)
-
+    load_dotenv(root / env_file)
+    
     token = os.getenv("UV_PUBLISH_TOKEN", "").strip()
     if not token:
         raise typer.BadParameter("Missing UV_PUBLISH_TOKEN (check your .env.secret).")
 
-    version = get_version()
+    uv_sync(root)
+
+    version = get_version(root)
 
     # Clean dist/
-    shutil.rmtree(DIST_DIR, ignore_errors=True)
+    shutil.rmtree(root / "dist", ignore_errors=True)
 
     # Build & publish (token via env, not CLI)
     env = os.environ.copy()
     env["UV_PUBLISH_TOKEN"] = token
 
-    subprocess.run(["uv", "build"], cwd=REPO_ROOT, check=True, env=env)
-    subprocess.run(["uv", "publish"], cwd=REPO_ROOT, check=True, env=env)
+    subprocess.run(["uv", "build"], cwd=root, check=True, env=env)
+    subprocess.run(["uv", "publish"], cwd=root, check=True, env=env)
 
     log.info(
         f"✅ Published whatsapp-toolkit {version} to PyPI. link: https://pypi.org/project/whatsapp-toolkit/"
