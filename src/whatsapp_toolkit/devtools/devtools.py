@@ -126,12 +126,12 @@ class LocalEvolutionStack:
     def __init__(self, paths: LocalEvolutionPaths):
         self.paths = paths
 
-    def start(self, detached: bool = False, build: bool = False, verbose: bool = True) -> None:
+    def start(self, detached: bool = True, build: bool = False, verbose: bool = True) -> None:
         """Inicia el stack (docker compose up)."""
         cmd = _compose_cmd()
         env_file, warn = _pick_env_file(self.paths.root)
         if warn and verbose:
-            log.info(warn)
+            log.warning(warn)
 
         args = [*cmd, "--env-file", str(env_file), "up"]
         if build: # Reconstruye imágenes antes de iniciar
@@ -141,12 +141,13 @@ class LocalEvolutionStack:
 
         if verbose:
             log.info("[devtools] Iniciando el stack de Evolution...")
-            log.info("[devtools] Abrir: http://localhost:8080/manager/")
-
+        
         _run(args, cwd=self.paths.root)
 
+        log.info("[devtools] Abrir: http://localhost:8080/manager/")
         if detached and verbose:
-            log.info("[devtools] ✅ Stack iniciado (en segundo plano). Usa .logs(follow=True) para ver logs.")
+            log.info("[devtools] ✅ Stack iniciado (en segundo plano). Usa 'wtk evo logs' para ver logs.")
+
 
     def stop(self, verbose: bool = True) -> None:
         """Detiene contenedores sin eliminar volúmenes (docker compose stop)."""
@@ -159,6 +160,7 @@ class LocalEvolutionStack:
             log.info("[devtools] Deteniendo el stack de Evolution...")
             
         _run([*cmd, "--env-file", str(env_file), "stop"], cwd=self.paths.root)
+        
 
     def down(self, volumes: bool = False, verbose: bool = True) -> None:
         """Desmonta el stack (docker compose down)."""
@@ -176,7 +178,8 @@ class LocalEvolutionStack:
             
         _run(args, cwd=self.paths.root)
 
-    def logs(self, service: Optional[str] = None, follow: bool = True) -> None:
+
+    def logs(self, service: list[str], follow: bool = True) -> None:
         """Muestra logs (docker compose logs).
         args:
             service: nombre del servicio (evolution-api, evolution-postgres, evolution-redis)
@@ -192,9 +195,9 @@ class LocalEvolutionStack:
         if follow:
             args.append("-f")
         if service:
-            args.append(service)
+            args.extend(service)
             
-        _run(args, cwd=self.paths.root)
+        _run(args, cwd=self.paths.root, verbose=True)
 
 
 # -----------------------------
@@ -254,7 +257,7 @@ def _pick_env_file(root: Path) -> Tuple[Path, Optional[str]]:
 
     if example_path.exists():
         warn = (
-            "[devtools] ℹ️  No se encontró .env; usando .env.example.\n"
+            "[devtools] ℹ️  No se encontró .env; usando .env.example."
             "[devtools]     Consejo: copia .env.example -> .env y configura AUTHENTICATION_API_KEY / POSTGRES_PASSWORD."
         )
         return example_path, warn
@@ -269,9 +272,18 @@ def _write_text(path: Path, content: str, overwrite: bool) -> None:
     path.write_text(content, encoding="utf-8")
 
 
-def _run(args: list[str], cwd: Path) -> None:
+def _run(args: list[str], cwd: Path, verbose: bool = True) -> None:
     try:
-        subprocess.run(args, cwd=str(cwd), check=True)
+        subprocess.run(
+            args, 
+            cwd=str(cwd), 
+            check=True,
+            # Silenciamos salida si no es verbose
+            stdout=None if verbose else subprocess.DEVNULL,
+            stderr=None if verbose else subprocess.DEVNULL,
+            # text para evitar problemas con encoding
+            text=True,
+        )
     except FileNotFoundError as e:
         raise RuntimeError(
             "Docker no está instalado o no está en PATH. Instala Docker Desktop (macOS/Windows) o Docker Engine (Linux)."
@@ -333,12 +345,15 @@ def ensure_docker_daemon() -> None:
             text=True,
         )
     except subprocess.CalledProcessError as e:
-        stderr = (e.stderr or "").strip()
+        subprocess_docker_error = (e.stderr or "").strip()
+        
         hint = (
             "Docker está instalado pero no parece estar corriendo (daemon inaccesible).\n"
-            "- macOS: abre Docker Desktop y espera a que diga 'Running'.\n"
-            "- Linux: intenta `sudo systemctl start docker` y `sudo systemctl status docker`.\n"
+            "- macOS: abre Docker Desktop y espera a que diga 'Running'.\n" if _platform() == "mac" else ""
+            "- Linux: intenta 'sudo systemctl start docker' y 'sudo systemctl status docker'.\n" if _platform() == "linux" else ""
+            "- Windows: abre Docker Desktop y espera a que diga 'Running'.\n" if _platform() == "windows" else ""
+            "Luego vuelve a intentar el comando."
         )
-        if stderr:
-            hint += f"\nDetalle: {stderr}"
+        if subprocess_docker_error:
+            hint += f"\nDetalle: {subprocess_docker_error}"
         raise RuntimeError(hint) from e

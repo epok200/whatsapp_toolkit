@@ -10,12 +10,10 @@ app = typer.Typer(
 )
 
 
-def _die(message: str, code: int = 1) -> "typer.Never":
+def _report_fatal_error(message: str, code: int = 1):
+    """Muestra un mensaje de error y termina la ejecución."""
     typer.secho(message, fg=typer.colors.RED, err=True)
     raise typer.Exit(code=code)
-
-
-
 
 
 def _require_docker() -> None:
@@ -23,9 +21,10 @@ def _require_docker() -> None:
     try:
         devtools.ensure_docker_daemon()
     except RuntimeError as e:
-        _die(str(e))
+        _report_fatal_error(str(e))
 
-@app.command("init")
+
+@app.command("init", help="Inicializa un stack local de Evolution API")
 def init(
     path: str = ".",
     overwrite: bool = typer.Option(False, "--overwrite", help="Sobrescribir archivos existentes"),
@@ -40,60 +39,69 @@ def init(
     )
 
 
-@app.command("up")
+@app.command("up", help="Inicia el stack local de Evolution API")
 def up(
     path: str = ".",
-    detached: bool = typer.Option(False, "-d", "--detached", help="Ejecutar en segundo plano"),
-    build: bool = typer.Option(False, "--build", help="Forzar reconstrucción de imágenes"),
-    quiet: bool = typer.Option(False, "--quiet", "-q", help="Menos saldas"   )
+    background: bool = typer.Option(True,"--bg/--no-bg", help="Iniciar docker en segundo plano"),
+    build: bool = typer.Option(False, "--build", help="Forzar reconstrucción de imágenes de docker"),
+    quiet: bool = typer.Option(False, "--quiet", "-q", help="Menos salidas de la librería")
 ):
     _require_docker()
     try:
         stack = devtools.local_evolution(path=path)
         stack.start(
-            detached=detached,
+            detached=background,
             build=build,
             verbose=not quiet
         )
     except RuntimeError as e:
-        _die(str(e))
+        _report_fatal_error(str(e))
     
-@app.command("stop")
+    
+@app.command("stop", help="Detiene el stack local de Evolution API")
 def stop(
     path: str = ".",
-    quiet: bool = typer.Option(False, "--quiet", help="Menos salidas")
+    quiet: bool = typer.Option(False, "--quiet", help="Menos salidas de la librería")
 ):
     _require_docker()
     try:
         stack = devtools.local_evolution(path=path)
         stack.stop(verbose=not quiet)
     except RuntimeError as e:
-        _die(str(e))
+        _report_fatal_error(str(e))
 
 
-@app.command("down")
+@app.command("down", help="Elimina el stack local de Evolution API")
 def down(
     path: str =  ".",
     volumes: bool = typer.Option(False, "-v", "--volumes", help="Elimina volumenes"),
-    quiet: bool = typer.Option(False, "--quiet", help="Menos salidas")
+    quiet: bool = typer.Option(False, "--quiet", help="Menos salidas de la librería")
 ):
     _require_docker()
     try:
         stack = devtools.local_evolution(path=path)
         stack.down(volumes=volumes, verbose= not quiet)
     except RuntimeError as e:
-        _die(str(e))
+        _report_fatal_error(str(e))
     
-@app.command("logs")
+    
+@app.command("logs", help="Muestra los logs del stack local de Evolution API |  nombre del servicio (evolution-api, evolution-postgres, evolution-redis)")
 def logs(
     path: str = ".",
     services: str | None = typer.Option(None, "--services", help="Servicios (evolution-api | evolution-postgres | evolution-redis)"),
-    follow: bool = typer.Option(False, "--follow/--no-follow", help="Seguir logs")
+    follow: bool = typer.Option(True, "--follow/--no-follow", help="Seguir logs")
 ):
     _require_docker()
     try:
+        args: list[str] = []
+        if not services:
+            all_services = ["evolution-api", "evolution-postgres", "evolution-redis"]
+            args.extend(all_services)
+        else:
+            args.append(services)
+
         stack = devtools.local_evolution(path=path)
-        stack.logs(service=services, follow=follow)
+        stack.logs(service=args, follow=follow)
     except RuntimeError as e:
-        _die(str(e))
+        _report_fatal_error(str(e))
     
