@@ -1,79 +1,33 @@
 
 
-# ================================ DOTENV EXAMPLE ==============================
+# ================================ DOTENV ==============================
 
-_DOTENV_EXAMPLE = """# =========================================
+_DOTENV_EVOLUTION = """# =========================================
 # WhatsApp Toolkit (Python) - configuración local/dev
 # =========================================
 # NOTA:
-# - Este es un archivo de EJEMPLO. Cópialo a `.env` y completa tus secretos.
-# - NO subas `.env` al repositorio.
+# - Este es un archivo de creado automaticamente si cambias algo reinica el docker.
+# - Sugerencia ignora esta carpeta '.wtk' en tu .gitignore.
 
 # --- Ajustes del cliente Python ---
-WHATSAPP_API_KEY=YOUR_EVOLUTION_API_KEY
-WHATSAPP_INSTANCE=fer
-WHATSAPP_SERVER_URL=http://localhost:8080/
+WHATSAPP_API_KEY={API_KEY}
+WHATSAPP_INSTANCE={INSTANCE}
+WHATSAPP_SERVER_URL={SERVER_URL}
 
 # --- Secretos compartidos de Docker Compose ---
-AUTHENTICATION_API_KEY=YOUR_EVOLUTION_API_KEY
-POSTGRES_PASSWORD=change_me
+AUTHENTICATION_API_KEY={API_KEY}
 """
 
 
-# ================================ WAKEUP SCRIPT ==============================
 
-_WAKEUP_SH = """#!/usr/bin/env bash
-set -euo pipefail
-
-# Este script está pensado para macOS/Linux y para Windows vía Git Bash o WSL.
-# NO intenta iniciar Docker Desktop/daemon por ti.
-
-echo "[devtools] Iniciando el stack de Evolution API (Docker Compose)"
-echo "[devtools] Abrir: http://localhost:8080/manager/"
-
-docker compose down || true
-docker compose up${UP_ARGS}
-"""
-
-
-# ================================ MINIMAL PYTHON SCRIPT ==============================
-
-_MAIN_WEBHOOK_PY ="""
-#from whatsapp_toolkit import webhook
-from fastapi import FastAPI
-from dotenv import load_dotenv
-import os
-
-load_dotenv()
-
-
-app = FastAPI(
-    title="WhatsApp Webhook",
-    description="A simple WhatsApp webhook using WhatsApp Toolkit and FastAPI",
-    version="1.0.0",
-    debug=True,
-    docs_url="/docs",
-)
-
-
-
-@app.get("/webhook/whatsapp/health", tags=["WhatsApp Webhook"])
-def whatsapp_webhook():
-    mensaje = "Todo OK"
-    return {"status_code": 200, "message": mensaje}
-
-
-"""
-
-
- # ================================ DOCKER COMPOSE ==============================
+ # ================================ DOCKER COMPOSE EVOLUTION ==============================
  
-_DOCKER_COMPOSE = """services:
+_DOCKER_COMPOSE_EVOLUTION = """services:
     evolution-api:
         image: evoapicloud/evolution-api:v{VERSION}
         restart: always
         ports:
-            - "8080:8080"
+            - "{PORT}:{PORT}"
         volumes:
             - evolution-instances:/evolution/instances
 
@@ -104,7 +58,7 @@ _DOCKER_COMPOSE = """services:
             # =========================
             - DATABASE_ENABLED=true
             - DATABASE_PROVIDER=postgresql
-            - DATABASE_CONNECTION_URI=postgresql://postgresql:${POSTGRES_PASSWORD}@evolution-postgres:5432/evolution
+            - DATABASE_CONNECTION_URI=postgresql://postgresql:change_me@evolution-postgres:5432/evolution
             - DATABASE_SAVE_DATA_INSTANCE=true
             - DATABASE_SAVE_DATA_NEW_MESSAGE=true
             - DATABASE_SAVE_MESSAGE_UPDATE=true
@@ -130,8 +84,7 @@ _DOCKER_COMPOSE = """services:
         environment:
             - POSTGRES_DB=evolution
             - POSTGRES_USER=postgresql
-            - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-
+            - POSTGRES_PASSWORD=change_me
     evolution-redis:
         image: redis:alpine
         restart: always
@@ -147,44 +100,80 @@ volumes:
     evolution-redis-data:
 """
 
+# ================================ MINIMAL PYTHON SCRIPT ==============================
 
-#servicio de webhooka
+_MAIN_WEBHOOK_PY ="""
+# Instala haciendo: 
+# pip install fastapi uvicorn python-dotenv whatsapp-toolkit
+# O usa (SUGERIDO): 
+# uv add  fastapi uvicorn python-dotenv whatsapp-toolkit
+
+
+#from whatsapp_toolkit import webhook
+from fastapi import FastAPI
+from dotenv import load_dotenv
+import os
+
+
+load_dotenv()
+
+
+app = FastAPI(
+    title="whatsapp-toolkit | Webhook",
+    description="A simple WhatsApp webhook using WhatsApp Toolkit and FastAPI",
+    version="1.0.0",
+    debug=True,
+    docs_url="/doc",
+)
+
+
+
+@app.get("/webhook/whatsapp/health", tags=["WhatsApp Webhook"])
+def whatsapp_webhook():
+    mensaje = "Todo OK"
+    return {"status_code": 200, "message": mensaje}
+
+
 """
-    # whatsapp_webhook:
-    #     build:
-    #         context: .
-    #         dockerfile: Dockerfile
-    #     ports:
-    #         - "8002:8002"
-    #     env_file:
-    #         - ./webhook/.env
-    #     restart: unless-stopped
+
+# ================================ DOCKER COMPOSE WEBHOOK ==============================
+_DOCKER_COMPOSE_WEBHOOK = """services:
+    whatsapp-webhook:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        ports:
+            - "{PORT}:{PORT}"
+        env_file:
+            - {ENV_DIR}
+        restart: unless-stopped
 """
 
 # ================================ DOCKERFILE WEBHOOK ==============================
-_DOCKERFILE="""FROM python:3.13.11-slim
+_DOCKERFILE_WEBHOOK="""FROM python:{PYTHON_VERSION}-slim
 WORKDIR /app
 
-COPY requirements.txt /app/requirements.txt
+COPY {REQUIREMENTS_DIR} /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
-COPY webhook/ /app/webhook/
+COPY {WEBHOOK_DIR} /app/webhook/
 
-EXPOSE 8002
-CMD ["uvicorn", "webhook.main_webhook:app", "--host", "0.0.0.0", "--port", "8002"]
+EXPOSE {PORT}
+CMD ["uvicorn", "webhook.main_webhook:app", "--host", "localhost", "--port", "{PORT}"]
 """
 
+# =============================== DOTENV WEBHOOK ==============================
+_DOTENV_WEBHOOK = """# =========================================
+# Webhook de WhatsApp Toolkit (Python) - configuración local/dev
+# =========================================
+# NOTA:
+# - Este es un archivo de creado automaticamente si cambias algo reinica el docker.
 
+WHATSAPP_API_KEY={API_KEY}
+"""
 
-
-
-
-
-
-
-
-
-_REQUIREMENTS_TXT = """# This file was autogenerated by uv via the following command:
+# =============================== REQUIREMENTS WEBHOOK ==============================
+_REQUIREMENTS_WEBHOOK = """# This file was autogenerated by uv via the following command:
 #    uv export --format requirements-txt --no-hashes
 
 annotated-doc==0.0.4
@@ -209,7 +198,7 @@ coloredlogs==15.0.1
     # via onnxruntime
 colorstreak==2.1.0
     # via whatsapp-toolkit
-dotenv==0.9.9
+python-dotenv==1.2.1
     # via whatsapp-toolkit
 exceptiongroup==1.3.1 ; python_full_version < '3.11'
     # via anyio

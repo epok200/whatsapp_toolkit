@@ -1,5 +1,6 @@
 import typer
 from whatsapp_toolkit.cli.evolution import app as evolution_app
+from whatsapp_toolkit.cli.webhook import app as webhook_app
 
 
 app = typer.Typer(
@@ -10,6 +11,7 @@ app = typer.Typer(
 )
 
 app.add_typer(evolution_app, name="evo")
+app.add_typer(webhook_app, name="webhook")
 
 
 if __name__ == "__main__":

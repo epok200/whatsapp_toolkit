@@ -40,26 +40,14 @@ class PathConfig:
 @dataclass(frozen=True)
 class BaseStackSpec:
     name: str                        # "evolution", "webhook", etc.
+    command_name: str                # "evo", "webhook", etc.
+    default_port: int                # puerto default (0 = sin puerto)
     compose_filename: str            # "docker-compose.yml"
     env_filename: str                # ".env"
-    wakeup_filename: str | None      # opcional
     required_files: tuple[str, ...]  # para healthcheck simple
     services: tuple[str, ...]        # para logs default
+    route_postfix: str = ""          # para healthcheck simple
     
-    def dir(self, paths: PathConfig) -> Path:
-        return paths.stack_dir(self.name)
-
-    def compose_path(self, paths: PathConfig) -> Path:
-        return self.dir(paths) / self.compose_filename
-
-    def env_path(self, paths: PathConfig) -> Path:
-        return self.dir(paths) / self.env_filename
-
-    def wakeup_path(self, paths: PathConfig) -> Path | None:
-        if not self.wakeup_filename:
-            return None
-        return self.dir(paths) / self.wakeup_filename
-
 
 
 # =========================
@@ -94,10 +82,17 @@ class TemplateWriter:
 
 class BaseStackInitializer(Generic[InitT]):
     """Responsabilidad única: crear layout + escribir templates para un stack."""
-    def __init__(self, paths: PathConfig, writer: TemplateWriter | None = None):
+    def __init__(self, spec: BaseStackSpec, paths: PathConfig, writer: TemplateWriter | None = None):
+        self.spec = spec
         self.paths = paths
         self.writer = writer or TemplateWriter()
 
+    def stack_dir(self) -> Path:
+        return self.paths.stack_dir(self.spec.name)
+    
+    def port(self) -> int:
+        return self.spec.default_port
+    
     def init(self, options: InitT) -> None:
         raise NotImplementedError()
 
@@ -173,11 +168,11 @@ class Stack:
 
     @property
     def cwd(self) -> Path:
-        return self.spec.dir(self.paths)
+        return self.paths.stack_dir(self.spec.name)
 
     @property
     def env_file(self) -> Path:
-        return self.spec.env_path(self.paths)
+        return self.cwd / self.spec.env_filename
 
     def _health_check(self) -> None:
         missing = []
@@ -193,7 +188,11 @@ class Stack:
 
     def up(self, background: bool = True, build: bool = False) -> None:
         self._health_check()
-        log.info(f"[devtools] Iniciando stack '{self.spec.name}'...")
+        
+        log.info(f"[whatsapp-toolkit] Iniciando stack '{self.spec.name.upper()}' ...")
+        log.info(f"[whatsapp-toolkit] Servicio levantado en 👉 [ http://localhost:{self.spec.default_port}{self.spec.route_postfix} ]")
+        log.info(f"[whatsapp-toolkit] Para ver logs, usa: 'wtk {self.spec.command_name} logs'")
+        
         self.runner.up(cwd=self.cwd, env_file=self.env_file, background=background, build=build)
 
     def stop(self) -> None:
