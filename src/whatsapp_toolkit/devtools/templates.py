@@ -138,15 +138,7 @@ _DOCKER_COMPOSE = """services:
         volumes:
             - evolution-redis-data:/data
             
-    whatsapp_webhook:
-        build:
-            context: .
-            dockerfile: Dockerfile
-        ports:
-            - "8002:8002"
-        env_file:
-            - ./webhook/.env
-        restart: unless-stopped
+
 
 
 volumes:
@@ -155,6 +147,19 @@ volumes:
     evolution-redis-data:
 """
 
+
+#servicio de webhooka
+"""
+    # whatsapp_webhook:
+    #     build:
+    #         context: .
+    #         dockerfile: Dockerfile
+    #     ports:
+    #         - "8002:8002"
+    #     env_file:
+    #         - ./webhook/.env
+    #     restart: unless-stopped
+"""
 
 # ================================ DOCKERFILE WEBHOOK ==============================
 _DOCKERFILE="""FROM python:3.13.11-slim

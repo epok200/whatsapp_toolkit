@@ -43,7 +43,7 @@ def init_local_evolution(path: str | os.PathLike[str] = ".", overwrite: bool = F
 
     Crea (solo cuando faltan, a menos que overwrite=True):
     - docker-compose.yml
-    - .env.evolution
+    - .env
     - wakeup_evolution.sh
 
     No crea `.env` para evitar subir secretos por accidente.
@@ -53,21 +53,21 @@ def init_local_evolution(path: str | os.PathLike[str] = ".", overwrite: bool = F
     # Crear ruta donde estarán los archivos
     stack_root = project_root / ".wtk"
     stack_evolution = stack_root / "evolution"
-    stack_webhook = stack_root / "webhook"
+    #stack_webhook = stack_root / "webhook"
     
     # Crear directorios
     stack_evolution.mkdir(parents=True, exist_ok=True)
-    stack_webhook.mkdir(parents=True, exist_ok=True)
+    #stack_webhook.mkdir(parents=True, exist_ok=True)
     
     # Archivos globales
     compose_file = stack_evolution / "docker-compose.yml"
-    env_example_file = stack_evolution / ".env.evolution"
+    env_example_file = stack_evolution / ".env"
     wakeup_sh = stack_evolution / "wakeup_evolution.sh"
     requirements_txt = stack_evolution / "requirements.txt"
+    docker_file_webhook = stack_evolution / "Dockerfile"
     
     
     # Archivos adicionales para el webhook
-    docker_file_webhook = stack_webhook / "Dockerfile"
     
     # Archivo principal del webhook ( Código minimo para el usuario)
     main_webhook_py = project_root /"webhook"/ "main_webhook.py"
@@ -121,16 +121,16 @@ def local_evolution(path: str | os.PathLike[str] = ".") -> "LocalEvolutionStack"
     root = Path(path).expanduser().resolve()
     stack_root = root / ".wtk" 
     stack_evolution = stack_root / "evolution"
-    stack_webhook = stack_root / "webhook"
+    #stack_webhook = stack_root / "webhook"
     
     paths = LocalEvolutionPaths(
         root=stack_evolution,
         compose_file=stack_evolution / "docker-compose.yml",
-        env_example_file=stack_evolution / ".env.evolution",
+        env_example_file=stack_evolution / ".env",
         wakeup_sh=stack_evolution / "wakeup_evolution.sh",
         requirements_txt=stack_evolution / "requirements.txt",
-        # Archivos del webhook
-        docker_file_webhook=stack_webhook / "Dockerfile",
+        docker_file_webhook=stack_evolution / "Dockerfile",
+
         
         # Archivo principal del webhook
         main_webhook_py=root / "webhook" / "main_webhook.py",
@@ -252,10 +252,10 @@ def _pick_env_file(root: Path) -> Tuple[Path, Optional[str]]:
     """Selecciona un archivo env para docker compose.
 
     Prefiere `.env` cuando existe y parece válido. Si `.env` existe pero parece incorrecto,
-    usa `.env.evolution` y devuelve un mensaje de advertencia.
+    usa `.env` y devuelve un mensaje de advertencia.
     """
     env_path = root / ".env"
-    example_path = root / ".env.evolution"
+    example_path = root / ".env"
 
     if env_path.exists():
         try:
@@ -268,7 +268,7 @@ def _pick_env_file(root: Path) -> Tuple[Path, Optional[str]]:
         warn = (
             "[devtools] ⚠️  Se encontró un archivo .env pero no parece contener líneas CLAVE=VALOR. "
             "Docker Compose puede fallar al parsearlo.\n"
-            "[devtools]     Solución: renombra/elimina ese .env y crea uno real a partir de .env.evolution."
+            "[devtools]     Solución: renombra/elimina ese .env y crea uno real a partir de .env."
         )
         if example_path.exists():
             return example_path, warn
@@ -276,8 +276,8 @@ def _pick_env_file(root: Path) -> Tuple[Path, Optional[str]]:
 
     if example_path.exists():
         warn = (
-            "[devtools] ℹ️  No se encontró .env; usando .env.evolution."
-            "[devtools]     Consejo: copia .env.evolution -> .env y configura AUTHENTICATION_API_KEY / POSTGRES_PASSWORD."
+            "[devtools] ℹ️  No se encontró .env; usando .env."
+            "[devtools]     Consejo: copia .env -> .env y configura AUTHENTICATION_API_KEY / POSTGRES_PASSWORD."
         )
         return example_path, warn
 
@@ -312,7 +312,7 @@ def _run(args: list[str], cwd: Path, verbose: bool = True) -> None:
             f"El comando de Docker Compose falló (exit={e.returncode}).\n"
             f"Comando: {' '.join(args)}\n"
             "Consejo: si el error menciona el parseo de .env, abre tu .env y asegúrate de que contenga solo líneas CLAVE=VALOR.\n"
-            "También puedes eliminar/renombrar un .env roto y copiar .env.evolution -> .env."
+            "También puedes eliminar/renombrar un .env roto y copiar .env -> .env."
         ) from e
 
 
