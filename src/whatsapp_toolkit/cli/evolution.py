@@ -1,6 +1,10 @@
 import typer
-from whatsapp_toolkit import devtools
 
+from whatsapp_toolkit.devtools import (
+    ensure_docker_daemon,
+    init_evolution,
+    stack_evolution,
+)
 
 app = typer.Typer(
     add_completion=False,
@@ -19,7 +23,7 @@ def _report_fatal_error(message: str, code: int = 1):
 def _require_docker() -> None:
     """Valida Docker antes de ejecutar comandos que dependen de Compose."""
     try:
-        devtools.ensure_docker_daemon()
+        ensure_docker_daemon()
     except RuntimeError as e:
         _report_fatal_error(str(e))
 
@@ -31,7 +35,7 @@ def init(
     version: str = typer.Option("2.3.7", "--version", help="Versión de Evolution API en el docker-compose"),
     quiet: bool = typer.Option(False, "--quiet", "-q", help="Modo silencioso, sin salida por consola")
 ):
-    devtools.init_local_evolution(
+    init_evolution(
         path=path,
         overwrite=overwrite,
         version=version,
@@ -44,15 +48,13 @@ def up(
     path: str = ".",
     background: bool = typer.Option(True,"--bg/--no-bg", help="Iniciar docker en segundo plano"),
     build: bool = typer.Option(False, "--build", help="Forzar reconstrucción de imágenes de docker"),
-    quiet: bool = typer.Option(False, "--quiet", "-q", help="Menos salidas de la librería")
 ):
     _require_docker()
     try:
-        stack = devtools.local_evolution(path=path)
-        stack.start(
-            detached=background,
+        stack = stack_evolution(path=path)
+        stack.up(
+            background=background,
             build=build,
-            verbose=not quiet
         )
     except RuntimeError as e:
         _report_fatal_error(str(e))
@@ -61,12 +63,11 @@ def up(
 @app.command("stop", help="Detiene el stack local de Evolution API")
 def stop(
     path: str = ".",
-    quiet: bool = typer.Option(False, "--quiet", help="Menos salidas de la librería")
 ):
     _require_docker()
     try:
-        stack = devtools.local_evolution(path=path)
-        stack.stop(verbose=not quiet)
+        stack = stack_evolution(path=path)
+        stack.stop()
     except RuntimeError as e:
         _report_fatal_error(str(e))
 
@@ -75,12 +76,11 @@ def stop(
 def down(
     path: str =  ".",
     volumes: bool = typer.Option(False, "-v", "--volumes", help="Elimina volumenes"),
-    quiet: bool = typer.Option(False, "--quiet", help="Menos salidas de la librería")
 ):
     _require_docker()
     try:
-        stack = devtools.local_evolution(path=path)
-        stack.down(volumes=volumes, verbose= not quiet)
+        stack = stack_evolution(path=path)
+        stack.down(volumes=volumes)
     except RuntimeError as e:
         _report_fatal_error(str(e))
     
@@ -100,8 +100,8 @@ def logs(
         else:
             args.append(services)
 
-        stack = devtools.local_evolution(path=path)
-        stack.logs(service=args, follow=follow)
+        stack = stack_evolution(path=path)
+        stack.logs(services=args, follow=follow)
     except RuntimeError as e:
         _report_fatal_error(str(e))
     
