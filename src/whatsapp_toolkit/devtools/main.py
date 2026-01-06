@@ -5,7 +5,7 @@ import shutil
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Generic, TypeVar
+from typing import Iterable, Generic, Mapping, TypeVar, Callable, Iterator
 
 from colorstreak import Logger as log
 
@@ -29,24 +29,80 @@ class PathConfig:
         return self.project_root / ".wtk"
 
     def stack_dir(self, name: str) -> Path:
+        """./project/.wtk/{name}/"""
         return self.stack_root / name
+    
+    def root_dir(self, name: str) -> Path:
+        """./project/{name}/"""
+        return self.project_root / name
+
+
+
+# =========================
+# ParhFile: representa un archivo en un stack
+# =========================
+@dataclass(frozen=True)
+class File:
+    key: str
+    filename: str
+    parent: Path
+    
+    @classmethod
+    def from_path(cls, key: str, filename: str, path: Path) -> "File":
+        return cls(key=key, filename=filename, parent=path)
+    
+    @property
+    def path(self) -> Path:
+        return self.parent / self.filename
+
+    def exists(self) -> bool:
+        return self.path.exists()
+
+
+# =========================
+# Files: mapa de archivos en un stack    
+# =========================    
+@dataclass(frozen=True)
+class Files(Mapping[str, File]):
+    _items: dict[str, File]
+    
+    @classmethod
+    def from_list(cls, files: Iterable[File]) -> "Files":
+        items: dict[str, File] = {file.key: file for file in files}
+        return cls(items)
+    
+    def __getitem__(self, key: str) -> File:
+        return self._items[key]
+    
+    def __iter__(self) -> Iterator[str]:
+        return iter(self._items)
+    
+    def __len__(self) -> int:
+        return len(self._items)
+    
+    def get_path(self, key: str, default: Path | None = None) -> Path:
+        f = self._items.get(key)
+        if f:
+            return f.path
+        if default is None:
+            raise KeyError(f"File with key '{key}' not found.")
+        return default
 
 
 
 # =========================
 #  BaseStackSpec: define QUÉ archivos y QUÉ comandos
 # =========================
+PathBuilder = Callable[["PathConfig"], Files]
 
 @dataclass(frozen=True)
 class BaseStackSpec:
-    name: str                        # "evolution", "webhook", etc.
-    command_name: str                # "evo", "webhook", etc.
-    default_port: int                # puerto default (0 = sin puerto)
-    compose_filename: str            # "docker-compose.yml"
-    env_filename: str                # ".env"
-    required_files: tuple[str, ...]  # para healthcheck simple
-    services: tuple[str, ...]        # para logs default
-    route_postfix: str = ""          # para healthcheck simple
+    name: str                  # "evolution", "webhook", etc.
+    command_name: str          # "evo", "webhook", etc.
+    default_port: int          # puerto default (0 = sin puerto)
+    services: tuple[str, ...]  # para logs default
+    paths: PathBuilder         # paths adicionales requeridos
+    route_postfix: str = ""    # para healthcheck simple
     
 
 
@@ -172,17 +228,19 @@ class Stack:
 
     @property
     def env_file(self) -> Path:
-        return self.cwd / self.spec.env_filename
+        paths: Files = self.spec.paths(self.paths)
+        env_file = paths.get_path("env_compose")
+        return env_file
 
     def _health_check(self) -> None:
-        missing = []
-        for file_name in self.spec.required_files:
-            file = self.cwd / file_name
+        missing: list[str] = []
+        required: Files = self.spec.paths(self.paths)
+        for key, file in required.items():
             if not file.exists():
-                missing.append(str(file))
+                missing.append(f"{key}: {file.filename} (expected at {file.path})")
         if missing:
             raise RuntimeError(
-                "Faltan archivos del stack. Ejecuta primero el init.\n" +
+                f"Faltan archivos del stack. Ejecuta primero el 'wtk {self.spec.command_name} init'.\n" +
                 "\n".join(missing)
             )
 

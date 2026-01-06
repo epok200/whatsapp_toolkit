@@ -10,7 +10,7 @@ from .main import (
     Stack,
     TemplateWriter,
 )
-from .templates import templates
+from .templates import evo_templates
 
 
 # =========================
@@ -62,13 +62,13 @@ class EvolutionStackInitializer(BaseStackInitializer):
         port = self.port()
 
         compose = (
-            templates._DOCKER_COMPOSE_EVOLUTION
+            evo_templates._DOCKER_COMPOSE_EVOLUTION
             .replace("{VERSION}", options.version)
             .replace("{PORT}", str(port))
         )
         
         dotenv = (
-            templates._DOTENV_EVOLUTION
+            evo_templates._DOTENV_EVOLUTION
             .replace("{API_KEY}", options.api_key)
             .replace("{INSTANCE}", options.instance)
             .replace("{SERVER_URL}", f"http://localhost:{port}/")
