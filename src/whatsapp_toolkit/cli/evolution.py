@@ -4,7 +4,7 @@ from whatsapp_toolkit import devtools
 
 app = typer.Typer(
     add_completion=False,
-    help="DevTools: stack local de Evolution API (Docker Compose)",
+    help="DevTools: stack local de Evolution API  en Docker Compose",
     pretty_exceptions_show_locals=False,
     pretty_exceptions_short=True,
 )

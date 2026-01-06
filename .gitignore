@@ -31,3 +31,5 @@ Dockerfile
 docker-compose.yml
 wakeup_evolution.sh
 requirements.txt
+
+.wtk
