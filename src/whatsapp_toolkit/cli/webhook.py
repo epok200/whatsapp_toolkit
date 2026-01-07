@@ -26,7 +26,7 @@ def init(
     overwrite: bool = typer.Option(False, "--overwrite", help="Sobrescribir archivos existentes"),
     quiet: bool = typer.Option(False, "--quiet", "-q", help="Modo silencioso, sin salida por consola"),
     python_version: str = typer.Option("3.13.11", "--python-version", help="Versión de Python para el Webhook"),
-    api_key: str = typer.Option("YOUR_WEBHOOK_API_KEY", "--api-key", help="API Key para el Webhook"),
+    api_key: str = typer.Option("YOUR_WHATSAPP_API_KEY", "--api-key", help="API Key para el Webhook"),
 ):
     init_webhook(
         path=path,

@@ -26,7 +26,7 @@ def init(
     overwrite: bool = typer.Option(False, "--overwrite", help="Sobrescribir archivos existentes"),
     version: str = typer.Option("2.3.7", "--version", help="Versión de Evolution API en el docker-compose"),
     quiet: bool = typer.Option(False, "--quiet", "-q", help="Modo silencioso, sin salida por consola"),
-    api_key: str = typer.Option("YOUR_EVOLUTION_API_KEY", "--api-key", help="API Key para Evolution"),
+    api_key: str = typer.Option("YOUR_WHATSAPP_API_KEY", "--api-key", help="API Key para Evolution"),
     instance: str = typer.Option("main", "--instance", help="Instancia de Evolution"),
 ):
     init_evolution(

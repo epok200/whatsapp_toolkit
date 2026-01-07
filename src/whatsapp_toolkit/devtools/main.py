@@ -35,6 +35,9 @@ class PathConfig:
     def root_dir(self, name: str) -> Path:
         """./project/{name}/"""
         return self.project_root / name
+    
+    def rel(self, a: Path, start: Path) -> Path:
+        return Path(os.path.relpath(a, start=start))
 
 
 

@@ -7,6 +7,8 @@ from .main import (
     BaseStackInitializer,
     BaseStackSpec,
     PathConfig,
+    File,
+    Files,
     Stack,
     TemplateWriter,
 )
@@ -23,6 +25,15 @@ class EvolutionInitOptions(BaseInitOptions):
     api_key: str = "YOUR_EVOLUTION_API_KEY"  # API Key para Evolution
     instance: str = "main"  # Instancia de Evolution
 
+def _evolution_required_paths(paths: PathConfig) -> "Files":
+    stack_dir = paths.stack_dir("evolution")  # ./project/.wtk/evolution/
+    
+    list_file: list[File] = [
+        # Server files
+        File.from_path("compose", "docker-compose.yml", stack_dir),
+        File.from_path("env_compose", ".env", stack_dir),
+    ]
+    return Files.from_list(list_file)
 
 
 # =========================
@@ -33,10 +44,8 @@ EVOLUTION = BaseStackSpec(
     name="evolution",
     command_name="evo",
     default_port=8080,
-    compose_filename="docker-compose.yml",
-    env_filename=".env",
-    required_files=("docker-compose.yml", ".env"),
     services=("evolution-api", "evolution-postgres", "evolution-redis"),
+    paths=_evolution_required_paths,
     route_postfix="/manager"
 )
 
@@ -52,35 +61,44 @@ class EvolutionStackInitializer(BaseStackInitializer):
     
     
     def init(self, options: EvolutionInitOptions) -> None:
+        files = self.spec.paths(self.paths)
+        
+        # Directorio base
         stack_dir = self.stack_dir()
-        stack_dir.mkdir(parents=True, exist_ok=True)
 
         # Archivos de evolution
-        compose_path = stack_dir / EVOLUTION.compose_filename
-        env_path = stack_dir / EVOLUTION.env_filename
+        compose_path = files.get_path("compose")
+        env_path = files.get_path("env_compose")
         
         port = self.port()
 
-        compose = (
+        compose_file = (
             evo_templates._DOCKER_COMPOSE_EVOLUTION
             .replace("{VERSION}", options.version)
             .replace("{PORT}", str(port))
         )
         
-        dotenv = (
+        dotenv_file = (
             evo_templates._DOTENV_EVOLUTION
             .replace("{API_KEY}", options.api_key)
             .replace("{INSTANCE}", options.instance)
             .replace("{SERVER_URL}", f"http://localhost:{port}/")
         )
+        
+        
+        files_and_paths_list =[
+            (compose_file, compose_path),
+            (dotenv_file, env_path),
+        ]
+        
 
-        self.writer.write(compose_path, compose, overwrite=options.overwrite)
-        self.writer.write(env_path, dotenv, overwrite=options.overwrite)
+        for content, path in files_and_paths_list:
+            self.writer.write(path, content, overwrite=options.overwrite)
         
         if options.verbose:
-            log.info(f"[whatsapp-toolkit] ✅ Stack '{EVOLUTION.name}' listo en: {stack_dir}")
-            log.library(f"  - {compose_path.name}")
-            log.library(f"  - {env_path.name}")
+            log.info(f"[whatsapp-toolkit] ✅ Stack '{self.spec.name}' listo en: {stack_dir}")
+            for _, p in files_and_paths_list:
+                log.library(f"  - {p.name}")
 
 
 

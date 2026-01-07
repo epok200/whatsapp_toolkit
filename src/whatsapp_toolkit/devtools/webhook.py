@@ -69,49 +69,54 @@ class WebhookStackInitializer(BaseStackInitializer):
     
     
     def init(self, options: WebhookInitOptions) -> None:
-        paths = self.spec.paths(self.paths)
+        files = self.spec.paths(self.paths)
+
+        # Directorios base (source of truth)
         stack_dir = self.paths.stack_dir("webhook")
         webhook_dir = self.paths.root_dir("webhook")
 
         # paths (server)
-        compose_path = paths.get_path("compose")
-        dockerfile_path = paths.get_path("dockerfile")
-        env_compose_path = paths.get_path("env_compose")
-        requirements_path = paths.get_path("requirements")
-        
+        compose_path = files.get_path("compose")
+        dockerfile_path = files.get_path("dockerfile")
+        env_compose_path = files.get_path("env_compose")
+        requirements_path = files.get_path("requirements")
+
         # paths (programming)
-        env_webhook_path = paths.get_path("env_webhook")
-        main_webhook_path = paths.get_path("main_webhook")
-        
-        
-        # webhook files (server)
-        port = self.port()
-        compose_file = (
-            temp._DOCKER_COMPOSE_WEBHOOK
-            .replace("{PORT}", str(port))
-            .replace("{ENV_DIR}", str(env_compose_path.parent) )
-        )
-        dockerfile_file = (
-            temp._DOCKERFILE_WEBHOOK
-            .replace("{PYTHON_VERSION}", options.python_version)
-            .replace("{REQUIREMENTS_DIR}", str(requirements_path))
-            .replace("{WEBHOOK_DIR}", str(webhook_dir))
-            .replace("{PORT}", str(port))
-        )
+        env_webhook_path = files.get_path("env_webhook")
+        main_webhook_path = files.get_path("main_webhook")
+
+        port = str(self.port())
+
+        # Relativos desde el contexto del stack (.wtk/webhook/) hacia /webhook del user
+        webhook_dir_rel = str(self.paths.rel(webhook_dir, start=stack_dir) )       # Path("../../webhook")
+        webhook_env_rel = str(self.paths.rel(env_webhook_path, start=stack_dir))   # Path("../../webhook/.env")
+
+        # =========================
+        # server files
+        # =========================
+
+        compose_file = temp._DOCKER_COMPOSE_WEBHOOK
+
+        dockerfile_file = temp._DOCKERFILE_WEBHOOK
+
+        # Este es el env que usa el runner con --env-file (control del stack)
         env_compose_file = (
             temp._DOTENV_COMPOSE_WEBHOOK
-            .replace("{PORT}", str(port))
+            .replace("{PORT}", port)
+            .replace("{PYTHON_VERSION}", options.python_version)
+            .replace("{WEBHOOK_DIR_REL}", webhook_dir_rel)
+            .replace("{WEBHOOK_ENV_REL}", webhook_env_rel)
         )
+
         requirements_file = temp._REQUIREMENTS_WEBHOOK
-        
-        # webhook files (programming)
-        dotenv_webhook_file = (
-            temp._DOTENV_WEBHOOK
-            .replace("{API_KEY}", options.api_key )
-        )
+
+        # =========================
+        # programming files
+        # =========================
+        dotenv_webhook_file = temp._DOTENV_WEBHOOK.replace("{API_KEY}", options.api_key)
         main_webhook_py_file = temp._MAIN_WEBHOOK_PY
-    
-        file_and_paths_list = [
+
+        files_and_paths_list = [
             # server files
             (compose_file, compose_path),
             (dockerfile_file, dockerfile_path),
@@ -122,20 +127,20 @@ class WebhookStackInitializer(BaseStackInitializer):
             (main_webhook_py_file, main_webhook_path),
         ]
 
-        for file_content, file_path in file_and_paths_list:
-            self.writer.write(file_path, file_content, overwrite=options.overwrite)
-            
+        for content, path in files_and_paths_list:
+            self.writer.write(path, content, overwrite=options.overwrite)
+
         if options.verbose:
-            log.info(f"[whatsapp-toolkit] ✅ Stack '{WEBHOOK.name}' listo en: {stack_dir}")
-            for _, paths in file_and_paths_list:            
-                log.library(f"  - {paths.name}")
+            log.info(f"[whatsapp-toolkit] ✅ Stack '{self.spec.name}' listo en: {stack_dir}")
+            for _, p in files_and_paths_list:
+                log.library(f"  - {p.name}")
 
 
 
 # =========================
 # Funciones de conveniencia para Webhook
 # =========================
-def init_webhook(path: str = ".", overwrite: bool = False, verbose: bool = True, python_version: str = "3.13.11", api_key: str = "YOUR_WEBHOOK_API_KEY") -> None:
+def init_webhook(path: str = ".", overwrite: bool = False, verbose: bool = True, python_version: str = "3.13.11", api_key: str = "YOUR_WHATSAPP_API_KEY") -> None:
     path_conf = PathConfig.from_path(path)
     (WebhookStackInitializer(WEBHOOK, path_conf)
      .init(WebhookInitOptions(
