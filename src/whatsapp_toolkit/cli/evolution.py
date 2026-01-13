@@ -28,6 +28,7 @@ def init(
     quiet: bool = typer.Option(False, "--quiet", "-q", help="Modo silencioso, sin salida por consola"),
     api_key: str = typer.Option("YOUR_WHATSAPP_API_KEY", "--api-key", help="API Key para Evolution"),
     instance: str = typer.Option("main", "--instance", help="Instancia de Evolution"),
+    webhook_url: str = typer.Option("http://host.docker.internal:8000/evolution/webhook", "--webhook-url", help="URL del webhook de Evolution"),
 ):
     init_evolution(
         path=path,
@@ -36,6 +37,7 @@ def init(
         verbose=not quiet,
         api_key=api_key,
         instance=instance,
+        webhook_url=webhook_url,
     )
 
 

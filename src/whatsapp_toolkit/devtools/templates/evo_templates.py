@@ -74,6 +74,19 @@ _DOCKER_COMPOSE_EVOLUTION = """services:
             - CACHE_REDIS_URI=redis://evolution-redis:6379
             - CACHE_REDIS_PREFIX_KEY=evolution
             - CACHE_REDIS_SAVE_INSTANCES=true
+            
+            # =========================
+            # Webhook
+            # =========================
+            - WEBHOOK_GLOBAL_ENABLED=true
+            - WEBHOOK_GLOBAL_URL={WEBHOOK_URL}
+            # With this option enabled, you work with one URL per webhook event, respecting the global URL and each event's name
+            - WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS=true
+
+            # Set the events you want to listen to; all events listed below are supported
+            - WEBHOOK_EVENTS_APPLICATION_STARTUP=true
+            - WEBHOOK_EVENTS_QRCODE_UPDATED=true
+
 
     evolution-postgres:
         image: postgres:16-alpine

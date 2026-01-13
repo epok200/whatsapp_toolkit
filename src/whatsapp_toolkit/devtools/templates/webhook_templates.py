@@ -212,7 +212,7 @@ WHATSAPP_API_KEY={API_KEY}
 """
 
 # ================================ MINIMAL PYTHON SCRIPT ==============================
-_MAIN_WEBHOOK_PY ="""
+_MAIN_WEBHOOK_PY ='''
 # Instala haciendo: 
 # pip install fastapi uvicorn python-dotenv whatsapp-toolkit
 # O usa (SUGERIDO): 
@@ -220,9 +220,12 @@ _MAIN_WEBHOOK_PY ="""
 
 
 #from whatsapp_toolkit import webhook
+from colorstreak import Logger
 from fastapi import FastAPI
 from dotenv import load_dotenv
 import os
+import json
+from fastapi import Request
 
 
 load_dotenv()
@@ -238,12 +241,22 @@ app = FastAPI(
 
 
 
-@app.get("/webhook/whatsapp/health", tags=["WhatsApp Webhook"])
-def whatsapp_webhook():    
-    whatsapp_api_key = os.getenv("WHATSAPP_API_KEY", "NO_API_KEY")
-    mensaje = f" Hola todo ok | API Key: {whatsapp_api_key}"
-    print(mensaje)
-    return {"status_code": 200, "message": mensaje}
+@app.post("/evolution/webhook/{event_name}")
+async def evolution_webhook(event_name: str, request: Request):
+    """
+    Webhook genérico: siempre lee el JSON,
+    toma `event` como fuente de verdad y despacha
+    al manejador correspondiente.
+    """
+    envelope = await request.json()
+
+    Logger.debug("===== WEBHOOK RECIBIDO =====")
+    Logger.info(json.dumps(envelope, indent=2, ensure_ascii=False))
+    Logger.debug("===== FIN DEL WEBHOOK =====")
+
+    internal_event = envelope.get("event")
+    Logger.debug(f"[webhook] Evento recibido: {event_name} (interno: {internal_event})")
+    return {"ok": True}
 
 
-"""
+'''

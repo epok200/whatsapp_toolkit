@@ -165,7 +165,7 @@ def iniciar_prueba_api_cruda(numero:str, mensaje: bool = False, pdf: bool = Fals
     
 # ============ VARIABLS DE ENTORNO ============
 
-load_dotenv(".env.example")
+load_dotenv(".env")
 
 
 WHATSAPP_API_KEY=os.getenv("WHATSAPP_API_KEY", "")
@@ -176,17 +176,25 @@ WHATSAPP_SERVER_URL=os.getenv("WHATSAPP_SERVER_URL", "http://localhost:8080/")
 API_KEY : str = WHATSAPP_API_KEY
 INSTANCE : str = WHATSAPP_INSTANCE
 SERVER_URL : str = WHATSAPP_SERVER_URL
+log.debug(f"API_KEY: {API_KEY} |  Instance: {INSTANCE} | Server URL: {SERVER_URL}")
 
 # ============ CACHCE ENGINE ============
 # EJEMPLO DE UNA URL: mongodb://usuario:contraseña@localhost:27017/mi_basededatos
 URL_MONGO = os.getenv("URL_MONGO", "")
 
-
-cache_engine = MongoCacheBackend(
-    uri=URL_MONGO,
-    ttl_seconds=1000,
-)
-cache_engine.warmup()
+cache_engine = None
+if URL_MONGO:
+    cache_engine = MongoCacheBackend(
+        uri=URL_MONGO,
+        ttl_seconds=1000,
+    )
+    try:
+        cache_engine.warmup()
+    except Exception as e:
+        log.error(f"[cache] No se pudo inicializar MongoCacheBackend: {e}")
+        cache_engine = None
+else:
+    log.info("[cache] URL_MONGO no está configurada; caché deshabilitada")
 
 
 # ============ INICIALIZAR CLIENTE DE WHATSAPP ============
@@ -194,7 +202,7 @@ engine = WhatsappClient(
     api_key=API_KEY, 
     server_url=SERVER_URL, 
     instance_name=INSTANCE,
-    cache=cache_engine,
+    #cache=cache_engine,
 )
 
 # ============ CONTACTOS Y GRUPOS ============
@@ -239,11 +247,11 @@ numero = get_chat_id("yo")
 
 iniciar_prueba_api_cruda(
     numero, 
-    # mensaje=True, 
-    # pdf=False, 
-    # sticker=True,
-    # imagen=True, 
-    # ubicacion=True,
-    # enviar_audio=True,
+    mensaje=True, 
+    pdf=True, 
+    sticker=True,
+    imagen=True, 
+    ubicacion=True,
+    enviar_audio=True,
     obtener_grupo = True
 )
