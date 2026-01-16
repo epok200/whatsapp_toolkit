@@ -1,0 +1,54 @@
+import httpx
+import base64
+import os
+from colorstreak import Logger
+
+# Carga de variable con fallback seguro para Docker en Mac/Windows
+# Si falla el .env, intentará host.docker.internal en lugar de localhost
+DEFAULT_URL = "http://host.docker.internal:8080"
+EVOLUTION_BASE_URL = os.getenv("EVOLUTION_URL", DEFAULT_URL)
+
+async def download_media(instance_id: str, message_data: dict, api_key: str, convert_to_mp4: bool = False) -> bytes:
+    """
+    Descarga media usando la URL base y la API Key que le pasemos dinámicamente.
+    """
+    # Limpieza de URL por si acaso tiene slash al final
+    base_url = EVOLUTION_BASE_URL.rstrip("/")
+    url = f"{base_url}/chat/getBase64FromMediaMessage/{instance_id}"
+    
+    # --- DEBUG VITAL: Esto nos dirá la verdad en los logs ---
+    Logger.debug(f"[Media] URL destino: {url}")
+    Logger.debug(f"[Media] Usando API Key: {api_key[:5]}...") # Solo muestra el inicio por seguridad
+    # ------------------------------------------------------
+
+    headers = {
+        "apikey": api_key, # Usamos la que viene del webhook
+        "Content-Type": "application/json"
+    }
+
+    payload = {
+        "message": message_data,
+        "convertToMp4": convert_to_mp4
+    }
+
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(url, json=payload, headers=headers, timeout=30)
+            response.raise_for_status()
+            
+            data = response.json()
+            base64_str = data.get("base64")
+            
+            if not base64_str:
+                Logger.error("La API conectó pero no devolvió base64")
+                return None
+
+            return base64.b64decode(base64_str)
+
+        except httpx.ConnectError:
+            Logger.error(f"❌ ERROR DE RED: No se puede conectar a {url}")
+            Logger.error("💡 TIP: ¿Estás en Docker? Asegúrate que EVOLUTION_URL sea 'http://host.docker.internal:8080'")
+            return None
+        except Exception as e:
+            Logger.error(f"[Media Service] Error: {e}")
+            return None

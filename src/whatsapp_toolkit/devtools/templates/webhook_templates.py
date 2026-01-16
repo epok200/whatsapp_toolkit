@@ -188,6 +188,7 @@ urllib3==2.6.1
     # via requests
 uvicorn==0.38.0
     # via whatsapp-toolkit
+httpx==0.28.1
 """
 
 
