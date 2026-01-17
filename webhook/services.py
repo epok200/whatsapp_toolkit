@@ -1,12 +1,43 @@
 import httpx
 import base64
+import io
+from groq import AsyncGroq
 from colorstreak import Logger
-from .config import WHATSAPP_SERVER_URL
+from .config import WHATSAPP_SERVER_URL, GROQ_API_KEY
 
-# Carga de variable con fallback seguro para Docker en Mac/Windows
-# Si falla el .env, intentará host.docker.internal en lugar de localhost
+
 
 EVOLUTION_BASE_URL = WHATSAPP_SERVER_URL
+
+groq_client = AsyncGroq(api_key=GROQ_API_KEY)
+
+
+
+async def speach_to_text(audio_bytes: bytes) -> str:
+    """
+    Función ficticia para convertir audio a texto.
+    En un caso real, aquí se integraría con un servicio de STT.
+    """
+    try:
+        audio_file = io.BytesIO(audio_bytes)
+        audio_file.name = "audio.ogg"  
+        
+        # 2. Petición a la API
+        transcription = await groq_client.audio.transcriptions.create(
+            file=audio_file,
+            model="whisper-large-v3", 
+            prompt="El audio es en español. Transcríbelo tal cual. ponle emojis si hay emociones.", 
+        )
+        
+        return transcription.text
+    
+    except Exception as e:
+        Logger.error(f"[STT Service] Error: {e}")
+        return "Error al procesar el audio."
+
+
+
+
 
 async def download_media(instance_id: str, message_data: dict, api_key: str, convert_to_mp4: bool = False) -> bytes:
     """
@@ -52,3 +83,6 @@ async def download_media(instance_id: str, message_data: dict, api_key: str, con
         except Exception as e:
             Logger.error(f"[Media Service] Error: {e}")
             raise ValueError("Error al descargar media")
+
+
+

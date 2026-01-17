@@ -116,7 +116,7 @@ colorama==0.4.6 ; sys_platform == 'win32'
     #   qrcode
 coloredlogs==15.0.1
     # via onnxruntime
-colorstreak==2.1.0
+colorstreak==2.1.3
     # via whatsapp-toolkit
 python-dotenv==1.2.1
     # via whatsapp-toolkit
@@ -188,8 +188,11 @@ urllib3==2.6.1
     # via requests
 uvicorn==0.38.0
     # via whatsapp-toolkit
+    
+# Instalaciones manuales
 httpx==0.28.1
 whatsapp-toolkit==1.5.7
+groq==1.0.0
 """
 
 
