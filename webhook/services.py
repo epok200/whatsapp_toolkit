@@ -1,12 +1,12 @@
 import httpx
 import base64
-import os
 from colorstreak import Logger
+from .config import WHATSAPP_SERVER_URL
 
 # Carga de variable con fallback seguro para Docker en Mac/Windows
 # Si falla el .env, intentará host.docker.internal en lugar de localhost
-DEFAULT_URL = "http://host.docker.internal:8080"
-EVOLUTION_BASE_URL = os.getenv("EVOLUTION_URL", DEFAULT_URL)
+
+EVOLUTION_BASE_URL = WHATSAPP_SERVER_URL
 
 async def download_media(instance_id: str, message_data: dict, api_key: str, convert_to_mp4: bool = False) -> bytes:
     """
@@ -41,14 +41,14 @@ async def download_media(instance_id: str, message_data: dict, api_key: str, con
             
             if not base64_str:
                 Logger.error("La API conectó pero no devolvió base64")
-                return None
+                raise ValueError("No se recibió base64 en la respuesta")
 
             return base64.b64decode(base64_str)
 
         except httpx.ConnectError:
             Logger.error(f"❌ ERROR DE RED: No se puede conectar a {url}")
             Logger.error("💡 TIP: ¿Estás en Docker? Asegúrate que EVOLUTION_URL sea 'http://host.docker.internal:8080'")
-            return None
+            raise ValueError("Error de conexión al servidor de media")
         except Exception as e:
             Logger.error(f"[Media Service] Error: {e}")
-            return None
+            raise ValueError("Error al descargar media")

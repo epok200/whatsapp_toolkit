@@ -1,3 +1,9 @@
+
+# Instala haciendo: 
+# pip install fastapi uvicorn python-dotenv whatsapp-toolkit
+# O usa (SUGERIDO): 
+# uv add  fastapi uvicorn python-dotenv whatsapp-toolkit
+
 from colorstreak import Logger
 from fastapi import FastAPI, Request
 
@@ -38,3 +44,4 @@ async def endpoint(event_type: str, request: Request):
     await webhook_manager.dispatch(payload)
         
     return {"status": "ack"}
+

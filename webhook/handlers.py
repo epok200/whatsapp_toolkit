@@ -1,5 +1,3 @@
-# handlers.py
-import os
 from colorstreak import Logger
 from .dispatcher import webhook_manager
 from .schemas import MessageUpsert
@@ -8,7 +6,7 @@ from .config import client_whatsapp, WHATSAPP_API_KEY
 
 
 
-def speach_to_text(audio_bytes: bytes) -> str:
+def speach_to_text() -> str:
     """
     Función ficticia para convertir audio a texto.
     En un caso real, aquí se integraría con un servicio de STT.
@@ -33,10 +31,13 @@ async def handle_messages(event: MessageUpsert):
             api_key=real_apikey
         )
         
-        if audio_bytes:
-            filename = f"audios/{event.wa_id}.ogg"
-            os.makedirs("audios", exist_ok=True)
-            with open(filename, "wb") as f:
-                f.write(audio_bytes)
-            
-            Logger.info(f"✅ Audio guardado en: {filename}")
+        # Simular conversión de audio a texto
+        Logger.info(f"Id del grupo/usuario: {event.remote_jid}")
+        transcription = speach_to_text()
+        
+        
+        client_whatsapp.send_text(
+            number=event.remote_jid,
+            text=transcription
+        )
+        
