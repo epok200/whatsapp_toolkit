@@ -1,6 +1,6 @@
 from colorstreak import Logger
 from .dispatcher import webhook_manager
-from .schemas import MessageUpsert
+from .schemas.message import MessageUpsert
 from .services import download_media, speach_to_text
 from .config import client_whatsapp, WHATSAPP_API_KEY
 
@@ -11,7 +11,10 @@ from .config import client_whatsapp, WHATSAPP_API_KEY
 
 @webhook_manager.on("messages.upsert", model=MessageUpsert)
 async def handle_messages(event: MessageUpsert):
-    # Irnorar mensajes que no son de nosotros
+    """
+    Handler para eventos de mensajes nuevos (upsert).
+    """
+    
     if not event.from_me:
         return  
     
@@ -26,7 +29,6 @@ async def handle_messages(event: MessageUpsert):
             api_key=real_apikey
         )
         
-        # Simular conversión de audio a texto
         Logger.info(f"Id del grupo/usuario: {event.remote_jid}")
         transcription = await speach_to_text(audio_bytes)
         

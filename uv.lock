@@ -171,11 +171,15 @@ wheels = [
 
 [[package]]
 name = "colorstreak"
-version = "2.1.0"
+version = "2.1.3"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/05/53/1d7ea79392c1fe4756ffa152101e5401133f00b690abfa6fb3a49bde5a80/colorstreak-2.1.0.tar.gz", hash = "sha256:eb30ee7965b39122ab46531aaadd7fb97f6abc794bfd7fd45384d70fe07b12dc", size = 1357, upload-time = "2025-09-10T06:12:57.536Z" }
+dependencies = [
+    { name = "python-dotenv" },
+    { name = "typer" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/1a/f6/2d94dcb1861ba4b92a062dac8840d51258efe13bf46fa7450ffbf5331c9a/colorstreak-2.1.3.tar.gz", hash = "sha256:14734e23767db8fe62eb0622666474072da6826a77e67268159676e49085174d", size = 3467, upload-time = "2026-01-09T09:53:01.863Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/29/d8/7be75f05c6201ef3ac497921df42987662c53bea8fe2e67783180fd35674/colorstreak-2.1.0-py3-none-any.whl", hash = "sha256:dd741c7c18a09519ce08f065ad8c4106dc22a51f2d0a2ad2ac24d0cb26ff1eac", size = 1828, upload-time = "2025-09-10T06:12:56.561Z" },
+    { url = "https://files.pythonhosted.org/packages/ab/ef/e89ee4b3c3c2dda94c3621b3ccd0ea8a73d1654e733dd999d1eadf881117/colorstreak-2.1.3-py3-none-any.whl", hash = "sha256:bd3f915ca7c2fdded36e3dc91153b530571c57002c16766c66f9fc904f6b19aa", size = 3814, upload-time = "2026-01-09T09:53:01.033Z" },
 ]
 
 [[package]]
@@ -1114,7 +1118,7 @@ wheels = [
 
 [[package]]
 name = "typer"
-version = "0.21.0"
+version = "0.21.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
@@ -1122,9 +1126,9 @@ dependencies = [
     { name = "shellingham" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/85/30/ff9ede605e3bd086b4dd842499814e128500621f7951ca1e5ce84bbf61b1/typer-0.21.0.tar.gz", hash = "sha256:c87c0d2b6eee3b49c5c64649ec92425492c14488096dfbc8a0c2799b2f6f9c53", size = 106781, upload-time = "2025-12-25T09:54:53.651Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/36/bf/8825b5929afd84d0dabd606c67cd57b8388cb3ec385f7ef19c5cc2202069/typer-0.21.1.tar.gz", hash = "sha256:ea835607cd752343b6b2b7ce676893e5a0324082268b48f27aa058bdb7d2145d", size = 110371, upload-time = "2026-01-06T11:21:10.989Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e1/e4/5ebc1899d31d2b1601b32d21cfb4bba022ae6fce323d365f0448031b1660/typer-0.21.0-py3-none-any.whl", hash = "sha256:c79c01ca6b30af9fd48284058a7056ba0d3bf5cf10d0ff3d0c5b11b68c258ac6", size = 47109, upload-time = "2025-12-25T09:54:51.918Z" },
+    { url = "https://files.pythonhosted.org/packages/a0/1d/d9257dd49ff2ca23ea5f132edf1281a0c4f9de8a762b9ae399b670a59235/typer-0.21.1-py3-none-any.whl", hash = "sha256:7985e89081c636b88d172c2ee0cfe33c253160994d47bdfdc302defd7d1f1d01", size = 47381, upload-time = "2026-01-06T11:21:09.824Z" },
 ]
 
 [[package]]
@@ -1196,7 +1200,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "colorstreak", specifier = ">=2.1.0" },
+    { name = "colorstreak", specifier = ">=2.1.3" },
     { name = "fastapi", specifier = ">=0.124.4" },
     { name = "groq", specifier = ">=1.0.0" },
     { name = "httpx", specifier = ">=0.28.1" },

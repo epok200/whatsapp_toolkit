@@ -1,6 +1,6 @@
 from typing import Any, Optional, Dict
 from pydantic import BaseModel, Field, model_validator
-from .utils import pluck
+from ..utils import pluck
 
 # ==============================
 # CORE

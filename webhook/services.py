@@ -1,7 +1,7 @@
 import httpx
 import base64
 import io
-from groq import AsyncGroq
+from groq import AsyncGroq, RateLimitError
 from colorstreak import Logger
 from .config import WHATSAPP_SERVER_URL, GROQ_API_KEY
 
@@ -22,7 +22,6 @@ async def speach_to_text(audio_bytes: bytes) -> str:
         audio_file = io.BytesIO(audio_bytes)
         audio_file.name = "audio.ogg"  
         
-        # 2. Petición a la API
         transcription = await groq_client.audio.transcriptions.create(
             file=audio_file,
             model="whisper-large-v3", 
@@ -31,9 +30,13 @@ async def speach_to_text(audio_bytes: bytes) -> str:
         
         return transcription.text
     
+    except RateLimitError:
+        Logger.error("🚦 Tráfico alto en Groq (Rate Limit). Esperando...")
+        return "⚠️ El sistema está saturado, intenta de nuevo en un minuto."
+        
     except Exception as e:
-        Logger.error(f"[STT Service] Error: {e}")
-        return "Error al procesar el audio."
+        Logger.error(f"❌ Error en STT: {e}")
+        return ""
 
 
 

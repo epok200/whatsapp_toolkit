@@ -1,35 +1,48 @@
-# dispatcher.py
-from asyncio import log
-from typing import Callable, Dict, Any, Type
+from typing import Callable, Dict, Type, Optional
 from pydantic import BaseModel
 from colorstreak import Logger
-import json
+from .events import EVENT_MODEL_MAP
 
 class EventDispatcher:
     def __init__(self):
-        # El 'casillero': Guarda {"nombre_evento": (funcion_handler, modelo_pydantic)}
+        # Aqupi se registran los handlers
         self._registry: Dict[str, tuple[Callable, Type[BaseModel]]] = {}
 
-    def on(self, event_name: str, model: Type[BaseModel]):
+    def on(self, event_type: str, model: Optional[Type[BaseModel]] = None):
         """
-        Decorador: Registra la función y define qué molde (Schema) usar.
-        Uso: @dispatcher.on("messages.upsert", model=MessageUpsert)
+        Decorador Inteligente.
+        Uso simple: @manager.on(EventType.MESSAGES_UPSERT) -> Auto-detecta el modelo.
+        Uso avanzado: @manager.on(..., model=MiModeloCustom) -> Sobrescribe el modelo.
         """
-        Logger.info(f"Registrando handler para evento: {event_name} con modelo {model.__name__}")
+        
+        # 1. AUTO-DETECCIÓN
+        if model is None:
+            # Buscamos en el mapa maestro
+            model = EVENT_MODEL_MAP.get(event_type)
+            
+            # Si no existe en el mapa y no lo pasaron manual -> Error de Desarrollo
+            if model is None:
+                raise ValueError(
+                    f"❌ El evento '{event_type}' no tiene un modelo por defecto. "
+                    "Debes pasar 'model=TuModelo' explícitamente."
+                )
+
         def wrapper(func):
-            self._registry[event_name] = (func, model)
+            Logger.debug(f"🔌 Handler registrado: {event_type} -> {model.__name__}")
+            self._registry[event_type] = (func, model)
             return func
         return wrapper
+    
+    def knows_event(self, event_type: str) -> bool:
+        """Verifica si el evento está registrado."""
+        event_normalized = event_type.replace("-", ".")
+        return event_normalized in self._registry
 
     async def dispatch(self, payload: dict):
         """
         Motor: Recibe JSON -> Busca Handler -> Valida -> Ejecuta.
         """
         event_name = payload.get("event")
-        
-        rawn_json_f = json.dumps(payload, ensure_ascii=False)
-        raw_formatted = json.loads(rawn_json_f)
-        
         
         # 1. Búsqueda eficiente en el registro
         if not event_name or event_name not in self._registry:
