@@ -1,10 +1,9 @@
+from colorstreak import Logger
 from fastapi import FastAPI, Request
-from dotenv import load_dotenv
+
+from . import config  # noqa: F401
 from . import handlers  # noqa: F401
 from .dispatcher import webhook_manager
-from colorstreak import Logger
-
-load_dotenv()
 
 app = FastAPI(title="WhatsApp Webhook", debug=True)
 
@@ -23,7 +22,7 @@ def is_event_allowed(event_type: str) -> bool:
             Logger.info(f"✅ Permitido -> {category}/{subcategory}")
             return True
     
-    Logger.warning(f"🚫 Ignorando -> {category}/{subcategory}") 
+    #Logger.warning(f"🚫 Ignorando -> {category}/{subcategory}") 
     return False
 
 
