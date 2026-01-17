@@ -1,4 +1,3 @@
-
 from colorstreak import Logger
 from fastapi import FastAPI, Request
 
@@ -29,3 +28,4 @@ async def endpoint(event_type: str, request: Request):
     await webhook_manager.dispatch(payload)
         
     return {"status": "ack"}
+
