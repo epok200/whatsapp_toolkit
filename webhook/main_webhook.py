@@ -1,5 +1,3 @@
-# main.py
-import json
 import os
 from colorstreak import Logger
 from dotenv import load_dotenv
@@ -11,6 +9,8 @@ from .services import download_media
 load_dotenv()
 
 app = FastAPI(title="WhatsApp Webhook", debug=True)
+
+
 
 @webhook_manager.on("messages.upsert", model=MessageUpsert)
 async def handle_messages(event: MessageUpsert):
@@ -48,5 +48,6 @@ async def handle_messages(event: MessageUpsert):
 @app.post("/evolution/webhook/{event_type}")
 async def endpoint(request: Request):
     payload = await request.json()
+    #Logger.debug(f"📩 Webhook recibido: {payload}")
     await webhook_manager.dispatch(payload)
     return {"status": "ack"}

@@ -1,4 +1,5 @@
 # dispatcher.py
+from asyncio import log
 from typing import Callable, Dict, Any, Type
 from pydantic import BaseModel
 from colorstreak import Logger
@@ -14,6 +15,7 @@ class EventDispatcher:
         Decorador: Registra la función y define qué molde (Schema) usar.
         Uso: @dispatcher.on("messages.upsert", model=MessageUpsert)
         """
+        Logger.info(f"Registrando handler para evento: {event_name} con modelo {model.__name__}")
         def wrapper(func):
             self._registry[event_name] = (func, model)
             return func
@@ -26,9 +28,8 @@ class EventDispatcher:
         event_name = payload.get("event")
         
         rawn_json_f = json.dumps(payload, ensure_ascii=False)
-        raw_formatted = json.loads(rawn_json_f,)
+        raw_formatted = json.loads(rawn_json_f)
         
-        Logger.debug(f"Payload received for event: {raw_formatted}")
         
         # 1. Búsqueda eficiente en el registro
         if not event_name or event_name not in self._registry:
