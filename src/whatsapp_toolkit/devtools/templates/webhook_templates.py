@@ -54,7 +54,7 @@ WORKDIR /app
 
 EXPOSE 8000
 
-CMD ["python", "-m", "uvicorn", "webhook.main_webhook:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "-m", "uvicorn", "webhook.main:app", "--host", "0.0.0.0", "--port", "8000"]
 """
 
 
@@ -219,45 +219,20 @@ _MAIN_WEBHOOK_PY ='''
 # O usa (SUGERIDO): 
 # uv add  fastapi uvicorn python-dotenv whatsapp-toolkit
 
-
-#from whatsapp_toolkit import webhook
-from colorstreak import Logger
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from dotenv import load_dotenv
-import os
-import json
-from fastapi import Request
-
+from . import handlers  # noqa: F401
+from .dispatcher import webhook_manager
 
 load_dotenv()
 
-
-app = FastAPI(
-    title="whatsapp-toolkit | Webhook",
-    description="A simple WhatsApp webhook using WhatsApp Toolkit and FastAPI",
-    version="1.0.0",
-    debug=True,
-    docs_url="/doc",
-)
+app = FastAPI(title="WhatsApp Webhook", debug=True)
 
 
-
-@app.post("/evolution/webhook/{event_name}")
-async def evolution_webhook(event_name: str, request: Request):
-    """
-    Webhook genérico: siempre lee el JSON,
-    toma `event` como fuente de verdad y despacha
-    al manejador correspondiente.
-    """
-    envelope = await request.json()
-
-    Logger.debug("===== WEBHOOK RECIBIDO =====")
-    Logger.info(json.dumps(envelope, indent=2, ensure_ascii=False))
-    Logger.debug("===== FIN DEL WEBHOOK =====")
-
-    internal_event = envelope.get("event")
-    Logger.debug(f"[webhook] Evento recibido: {event_name} (interno: {internal_event})")
-    return {"ok": True}
-
+@app.post("/evolution/webhook/{event_type}")
+async def endpoint(request: Request):
+    payload = await request.json()
+    await webhook_manager.dispatch(payload)
+    return {"status": "ack"}
 
 '''

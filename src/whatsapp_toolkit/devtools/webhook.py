@@ -40,7 +40,7 @@ def _webhook_required_paths(paths: PathConfig) -> Files:
         File.from_path("requirements", "requirements.txt", stack_dir),
         # Programming files
         File.from_path("env_webhook", ".env", webhook_dir),
-        File.from_path("main_webhook", "main_webhook.py", webhook_dir),
+        File.from_path("main_webhook", "main.py", webhook_dir),
     ]
     return Files.from_list(list_file)
 
