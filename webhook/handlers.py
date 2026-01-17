@@ -4,8 +4,7 @@ from .schemas.message import MessageUpsert
 from .services import download_media, speach_to_text
 from .config import client_whatsapp, WHATSAPP_API_KEY
 
-
-
+   
 
 
 
@@ -33,8 +32,19 @@ async def handle_messages(event: MessageUpsert):
         transcription = await speach_to_text(audio_bytes)
         
         
-        client_whatsapp.send_text(
+        await client_whatsapp.send_text(
             number=event.remote_jid,
             text=transcription
         )
+    
+    if event.message_type == "conversation":
+        key_word = "@rorro"
+        message =  event.body.lower().split()
+        
+        if key_word in message:
+            await client_whatsapp.send_text(
+                number=event.remote_jid,
+                text="Hola guapo, sacate el papoi"
+            )
+        Logger.info(f"💬 Mensaje de texto recibido: {event.body}")
         
