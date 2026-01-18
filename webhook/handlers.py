@@ -9,20 +9,18 @@ message_router = MessageRouter()
 
 @message_router.on(MessageType.REACTION_MESSAGE)
 async def handler_reaction(event):
+    
     emoji = event.reaction_text
     mensaje_afectado = event.reaction_target_id
     
-    try:
+    if emoji == "🪲":
         texto_original = await client_whatsapp.get_message_content(mensaje_afectado)
-    except Exception as e:
-        texto_original = f"<No se pudo recuperar el mensaje original> Error:{e}"
-        Logger.error(f"Error al obtener el mensaje original: {e}")
-    
-    mensaje = f"Reacción recibida: '{emoji}' en el mensaje '{texto_original}'"
-    await client_whatsapp.send_text(
-            number=event.remote_jid,
-            text=mensaje
-        )
+        
+        mensaje = f"Has enviado un bicho en respuesta al mensaje: '{texto_original}'. ¡Gracias por el reporte!"
+        await client_whatsapp.send_text(
+                number=event.remote_jid,
+                text=mensaje
+            )
 
 @message_router.text()
 async def handler_text(event):
