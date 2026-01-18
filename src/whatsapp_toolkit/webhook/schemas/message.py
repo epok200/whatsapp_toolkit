@@ -8,7 +8,7 @@ from ..message_type import MessageType
 # ==============================
 class BaseEvent(BaseModel):
     event_type: str = Field(..., alias="event")
-    instance_id: str = Field(default="")
+    instance: str = Field(default="")
     apikey: Optional[str] = None
     
     class Config:

@@ -49,11 +49,6 @@ async def download_media(instance_id: str, message_data: dict, api_key: str, con
     # Limpieza de URL por si acaso tiene slash al final
     base_url = EVOLUTION_BASE_URL.rstrip("/")
     url = f"{base_url}/chat/getBase64FromMediaMessage/{instance_id}"
-    
-    # --- DEBUG VITAL: Esto nos dirá la verdad en los logs ---
-    Logger.debug(f"[Media] URL destino: {url}")
-    Logger.debug(f"[Media] Usando API Key: {api_key[:5]}...") # Solo muestra el inicio por seguridad
-    # ------------------------------------------------------
 
     headers = {
         "apikey": api_key, # Usamos la que viene del webhook

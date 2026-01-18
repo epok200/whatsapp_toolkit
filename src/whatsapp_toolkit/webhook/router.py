@@ -1,5 +1,4 @@
 from typing import Callable, Awaitable
-from colorstreak import Logger
 from .message_type import MessageType
 from .schemas import MessageUpsert
 
@@ -16,7 +15,6 @@ class MessageRouter:
         Uso: @router.on(MessageType.AUDIO_MESSAGE)
         """
         def wrapper(func: MessageHandler):
-            Logger.debug(f"    └── 📨 Sub-handler registrado: {message_type} -> {func.__name__}")
             self._routes[message_type] = func
             return func
         return wrapper
@@ -38,10 +36,8 @@ class MessageRouter:
         handler = self._routes.get(message_type)
         
         if handler:
-            # Logger.debug(f"🔀 Enrutando mensaje tipo: {msg_type}")
             await handler(event)
         else:
-            #Logger.debug(f"Ignorando tipo de mensaje sin handler: {msg_type}")
             pass
         
         
