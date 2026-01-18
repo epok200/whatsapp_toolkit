@@ -87,3 +87,29 @@ class AsyncWhatsAppSender:
         }
         resp = await self._post(f"/message/sendLocation/{self.instance_name}", payload)
         return resp is not None and 200 <= resp.status_code < 300
+    
+    async def find_message(self, message_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Busca un mensaje en la base de datos de Evolution usando la conexión persistente.
+        """
+        # Payload específico de Evolution/Prisma
+        payload = {
+            "where": {
+                "key": {
+                    "id": message_id
+                }
+            }
+        }
+        
+        # Reutilizamos _post para aprovechar el manejo de errores y la conexión viva
+        resp = await self._post(f"/chat/findMessages/{self.instance_name}", payload)
+        
+        if resp is not None and 200 <= resp.status_code < 300:
+            data = resp.json()
+            # Evolution puede devolver una lista o un objeto con "messages"
+            if isinstance(data, list) and len(data) > 0:
+                return data[0]
+            elif isinstance(data, dict) and "messages" in data:
+                return data["messages"][0] if data["messages"] else None
+                
+        return None

@@ -53,3 +53,34 @@ class AsyncWhatsappClient:
 
     async def send_location(self, number: str, lat: float, long: float, address: str = "") -> bool:
         return await self._sender.send_location(number, lat, long, address)
+    
+    async def get_message_content(self, message_id: str) -> str:
+        """
+        Recupera el TEXTO limpio de un mensaje antiguo por su ID.
+        """
+        # 1. Delegamos la búsqueda al sender (que tiene la conexión rápida)
+        msg_data = await self._sender.find_message(message_id)
+        
+        if not msg_data:
+            return "[Mensaje no encontrado]"
+            
+        # 2. Extraemos el contenido según el tipo de mensaje
+        base_msg = msg_data.get("message", {})
+        
+        # Texto simple
+        if "conversation" in base_msg:
+            return base_msg["conversation"]
+            
+        # Texto extendido (respuestas, menciones)
+        elif "extendedTextMessage" in base_msg:
+            return base_msg.get("extendedTextMessage", {}).get("text", "")
+            
+        # Imágenes con caption
+        elif "imageMessage" in base_msg:
+            return base_msg.get("imageMessage", {}).get("caption", "[Imagen sin texto]")
+            
+        # Videos con caption
+        elif "videoMessage" in base_msg:
+             return base_msg.get("videoMessage", {}).get("caption", "[Video sin texto]")
+             
+        return "[Contenido no textual]"

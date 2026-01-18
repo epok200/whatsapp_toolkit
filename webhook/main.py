@@ -27,7 +27,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="WhatsApp Webhook", 
     debug=True,
-    lifespan=lifespan # Conectamos el lifespan aquí
+    lifespan=lifespan
 )
 
 @app.post("/evolution/webhook/{event_type}")

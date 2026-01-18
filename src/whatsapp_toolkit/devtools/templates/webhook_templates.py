@@ -191,7 +191,7 @@ uvicorn==0.38.0
     
 # Instalaciones manuales
 httpx==0.28.1
-whatsapp-toolkit==1.6.2
+whatsapp-toolkit==1.7.0
 groq==1.0.0
 """
 
@@ -224,9 +224,8 @@ _MAIN_WEBHOOK_PY ='''from contextlib import asynccontextmanager
 from colorstreak import Logger
 from fastapi import FastAPI, Request
 
-from . import config  # noqa: F401
 from .config import client_whatsapp
-from .handlers import webhook_manager  # noqa: F401
+from .manager import webhook_manager
 
 
 # ==========================================
@@ -249,7 +248,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="WhatsApp Webhook", 
     debug=True,
-    lifespan=lifespan # Conectamos el lifespan aquí
+    lifespan=lifespan
 )
 
 @app.post("/evolution/webhook/{event_type}")

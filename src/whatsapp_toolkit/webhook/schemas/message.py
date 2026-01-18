@@ -94,6 +94,11 @@ class ContentMixin(BaseEvent):
             
         elif MessageType.STIKER_MESSAGE in msg: # Usamos tu nombre de variable
             body = "[Sticker]"
+
+        # --- AQUÍ LA INTEGRACIÓN ---
+        elif MessageType.REACTION_MESSAGE in msg:
+            # Extraemos el emoji directamente para que 'event.body' no esté vacío
+            body = pluck(msg, f"{MessageType.REACTION_MESSAGE}.text", "[Reacción]")
         
         envelope["body"] = body
         return envelope
@@ -140,6 +145,7 @@ class MediaMixin(BaseEvent):
 class ReactionMixin(BaseEvent):
     is_reaction: bool = False
     reaction_target_id: Optional[str] = None
+    reaction_text: Optional[str] = None 
     
     @model_validator(mode="before")
     @classmethod
@@ -149,11 +155,13 @@ class ReactionMixin(BaseEvent):
         
         message = pluck(envelope, "data.message", {})
         
-        # Nota: ReactionMessage suele ser un tipo aparte, pero si Evolution lo manda así:
-        if "reactionMessage" in message:
-            react = message["reactionMessage"]
+        # --- INTEGRACIÓN COMPLETA DE REACTION ---
+        if MessageType.REACTION_MESSAGE in message:
+            react = message[MessageType.REACTION_MESSAGE]
+            
             envelope["is_reaction"] = True
             envelope["reaction_target_id"] = pluck(react, "key.id")
+            envelope["reaction_text"] = pluck(react, "text") 
             
         return envelope
 

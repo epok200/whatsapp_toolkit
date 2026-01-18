@@ -7,6 +7,17 @@ from whatsapp_toolkit.webhook import MessageRouter, MessageType
 message_router = MessageRouter()
 
 
+@message_router.on(MessageType.REACTION_MESSAGE)
+async def handler_reaction(event):
+    emoji = event.reaction_text
+    mensaje_afectado = event.reaction_target_id
+    
+    mensaje = f"Reacción recibida: {emoji} en el mensaje {mensaje_afectado}"
+    await client_whatsapp.send_text(
+            number=event.remote_jid,
+            text=mensaje
+        )
+
 @message_router.text()
 async def handler_text(event):
     key_word = "@rorro"
@@ -37,3 +48,15 @@ async def handler_audio(event):
             number=event.remote_jid,
             text=transcription
         )
+        
+
+@message_router.on(MessageType.IMAGE_MESSAGE)
+async def handler_image(event):
+    Logger.info(f"🖼️ Imagen recibida con caption: {event.body}")
+    
+    await client_whatsapp.send_text(
+        number=event.remote_jid,
+        text=f"¡Gracias por la imagen! Has dicho: {event.body}"
+    )
+
+
