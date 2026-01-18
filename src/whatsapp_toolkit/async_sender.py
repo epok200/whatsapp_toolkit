@@ -90,26 +90,29 @@ class AsyncWhatsAppSender:
     
     async def find_message(self, message_id: str) -> Optional[Dict[str, Any]]:
         """
-        Busca un mensaje en la base de datos de Evolution usando la conexión persistente.
+        Busca y limpia la respuesta. Devuelve el mensaje RAW limpio o None.
         """
-        # Payload específico de Evolution/Prisma
-        payload = {
-            "where": {
-                "key": {
-                    "id": message_id
-                }
-            }
-        }
+        payload = {"where": {"key": {"id": message_id}}}
         
-        # Reutilizamos _post para aprovechar el manejo de errores y la conexión viva
         resp = await self._post(f"/chat/findMessages/{self.instance_name}", payload)
-        
+
         if resp is not None and 200 <= resp.status_code < 300:
             data = resp.json()
-            # Evolution puede devolver una lista o un objeto con "messages"
-            if isinstance(data, list) and len(data) > 0:
-                return data[0]
-            elif isinstance(data, dict) and "messages" in data:
-                return data["messages"][0] if data["messages"] else None
+
+            # Estructura detectada en tus logs:
+            # {'messages': {'records': [{'message': ...}]}}
+            
+            if isinstance(data, dict):
+                msgs_container = data.get("messages", {})
                 
+                # Caso A: Estructura anidada con 'records' (Tu caso actual)
+                if isinstance(msgs_container, dict) and "records" in msgs_container:
+                    records = msgs_container["records"]
+                    if isinstance(records, list) and len(records) > 0:
+                        return records[0]
+                
+                # Caso B: Estructura de lista directa (Versiones viejas de Evo)
+                elif isinstance(msgs_container, list) and len(msgs_container) > 0:
+                    return msgs_container[0]
+
         return None
