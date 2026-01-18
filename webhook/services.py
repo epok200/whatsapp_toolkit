@@ -20,12 +20,12 @@ async def speach_to_text(audio_bytes: bytes) -> str:
     """
     try:
         audio_file = io.BytesIO(audio_bytes)
-        audio_file.name = "audio.ogg"  
+        audio_file.name = "audio.ogg"
         
         transcription = await groq_client.audio.transcriptions.create(
             file=audio_file,
-            model="whisper-large-v3", 
-            prompt="El audio es en español. Transcríbelo tal cual. ponle emojis si hay emociones.", 
+            model="whisper-large-v3",
+            prompt="El audio es en español. Transcríbelo tal cual. ponle emojis si hay emociones.",
         )
         
         return transcription.text
@@ -36,7 +36,7 @@ async def speach_to_text(audio_bytes: bytes) -> str:
         
     except Exception as e:
         Logger.error(f"❌ Error en STT: {e}")
-        return ""
+        return "⚠️ Ocurrió un error al procesar el audio."
 
 
 

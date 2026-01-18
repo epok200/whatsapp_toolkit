@@ -60,5 +60,3 @@ class EventDispatcher:
         except Exception as e:
             Logger.error(f"[Dispatcher] Error procesando {event_name}: {e}")
 
-# Instancia única para importar en main
-webhook_manager = EventDispatcher()

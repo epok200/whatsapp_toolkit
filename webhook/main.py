@@ -4,10 +4,9 @@ from fastapi import FastAPI, Request
 
 # Imports de efectos secundarios (registran handlers y config)
 from . import config  # noqa: F401
-from . import handlers  # noqa: F401
+from .handlers import webhook_manager  # noqa: F401
 
 # Importamos el manager y el cliente para cerrarlo
-from .dispatcher import webhook_manager
 from .config import client_whatsapp 
 
 # ==========================================

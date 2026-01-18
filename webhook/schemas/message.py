@@ -1,6 +1,7 @@
 from typing import Any, Optional, Dict
 from pydantic import BaseModel, Field, model_validator
 from ..utils import pluck
+from ..message_type import MessageType 
 
 # ==============================
 # CORE
@@ -12,8 +13,6 @@ class BaseEvent(BaseModel):
     
     class Config:
         populate_by_name = True
-        
-    # SIN AUTO_MAP. Simplicidad total.
 
 # ==============================        
 # MIXINS : Lógica Explícita (Sin Magia)
@@ -32,7 +31,6 @@ class IdentityMixin(BaseEvent):
         if not isinstance(envelope, dict): 
             return envelope
         
-        # Extracción MANUAL y EXPLÍCITA con pluck
         envelope["remote_jid"] = pluck(envelope, "data.key.remoteJid")
         envelope["from_me"]    = pluck(envelope, "data.key.fromMe", False)
         envelope["wa_id"]      = pluck(envelope, "data.key.id")
@@ -54,7 +52,7 @@ class MetaMixin(BaseEvent):
         
         envelope["timestamp"]   = pluck(envelope, "data.messageTimestamp")
         envelope["raw_message"] = pluck(envelope, "data.message", {})
-        envelope["raw"]         = pluck(envelope, "data", {}) # Contexto para desencriptar
+        envelope["raw"]         = pluck(envelope, "data", {}) 
         
         return envelope
         
@@ -71,23 +69,30 @@ class ContentMixin(BaseEvent):
         # 1. Tipo de mensaje
         envelope["message_type"] = pluck(envelope, "data.messageType", "unknown")
         
-        # 2. El Body (Lógica Polimórfica)
+        # 2. El Body (Lógica Polimórfica usando MessageType)
         msg = pluck(envelope, "data.message", {})
         body = ""
         
-        if "conversation" in msg:
-            body = msg["conversation"]
-        elif "extendedTextMessage" in msg:
-            body = pluck(msg, "extendedTextMessage.text", "")
-        elif "imageMessage" in msg:
-            body = pluck(msg, "imageMessage.caption", "[Imagen]")
-        elif "videoMessage" in msg:
-            body = pluck(msg, "videoMessage.caption", "[Video]")
-        elif "documentMessage" in msg:
-            body = pluck(msg, "documentMessage.caption", "[Documento]")
-        elif "audioMessage" in msg:
+        if MessageType.CONVERSATION in msg:
+            body = msg[MessageType.CONVERSATION]
+            
+        elif MessageType.EXTENDED_TEXT_MESSAGE in msg:
+            # Construimos el path dinámicamente: "extendedTextMessage.text"
+            body = pluck(msg, f"{MessageType.EXTENDED_TEXT_MESSAGE}.text", "")
+            
+        elif MessageType.IMAGE_MESSAGE in msg:
+            body = pluck(msg, f"{MessageType.IMAGE_MESSAGE}.caption", "[Imagen]")
+            
+        elif MessageType.VIDEO_MESSAGE in msg:
+            body = pluck(msg, f"{MessageType.VIDEO_MESSAGE}.caption", "[Video]")
+            
+        elif MessageType.DOCUMENT_MESSAGE in msg:
+            body = pluck(msg, f"{MessageType.DOCUMENT_MESSAGE}.caption", "[Documento]")
+            
+        elif MessageType.AUDIO_MESSAGE in msg:
             body = "[Audio]"
-        elif "stickerMessage" in msg:
+            
+        elif MessageType.STIKER_MESSAGE in msg: # Usamos tu nombre de variable
             body = "[Sticker]"
         
         envelope["body"] = body
@@ -109,14 +114,19 @@ class MediaMixin(BaseEvent):
         target = None
         is_stick = False
         
-        if "audioMessage" in message: 
-            target = message["audioMessage"]
-        elif "imageMessage" in message: 
-            target = message["imageMessage"]
-        elif "videoMessage" in message: 
-            target = message["videoMessage"]
-        elif "stickerMessage" in message: 
-            target = message["stickerMessage"]
+        # --- REFACTORIZADO CON CONSTANTES ---
+        
+        if MessageType.AUDIO_MESSAGE in message: 
+            target = message[MessageType.AUDIO_MESSAGE]
+            
+        elif MessageType.IMAGE_MESSAGE in message: 
+            target = message[MessageType.IMAGE_MESSAGE]
+            
+        elif MessageType.VIDEO_MESSAGE in message: 
+            target = message[MessageType.VIDEO_MESSAGE]
+            
+        elif MessageType.STIKER_MESSAGE in message: 
+            target = message[MessageType.STIKER_MESSAGE]
             is_stick = True
         
         if target:
@@ -139,6 +149,7 @@ class ReactionMixin(BaseEvent):
         
         message = pluck(envelope, "data.message", {})
         
+        # Nota: ReactionMessage suele ser un tipo aparte, pero si Evolution lo manda así:
         if "reactionMessage" in message:
             react = message["reactionMessage"]
             envelope["is_reaction"] = True
