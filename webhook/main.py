@@ -1,5 +1,7 @@
+import asyncio
 from contextlib import asynccontextmanager
 
+import qrcode
 from colorstreak import Logger
 from fastapi import FastAPI, Request
 
@@ -8,6 +10,42 @@ from .manager import webhook_manager
 
 
 # ==========================================
+# 🔄 TAREA DE ARRANQUE (Background)
+# ==========================================
+async def startup_task():
+    await asyncio.sleep(3)
+    Logger.info("🔄 [Background] Verificando conexión...")
+    
+    try:
+        status = await client_whatsapp.initialize()
+        
+        if status in ["created", "close"]:
+            Logger.info("✨ Solicitando QR...")
+            
+            # Ahora obtenemos el TEXTO (ej: "2@QmGb...")
+            qr_string = await client_whatsapp.get_qr()
+            
+            if qr_string:
+                Logger.success("📸 ESCANEA ESTE CÓDIGO:")
+                
+                # --- DIBUJADO EN MEMORIA (Sin archivos) ---
+                qr = qrcode.QRCode()
+                qr.add_data(qr_string)
+                
+                print("\n\n") 
+                # invert=True es vital para que se vea bien en terminal negra
+                qr.print_ascii(invert=True) 
+                print("\n\n")
+                # ------------------------------------------
+            else:
+                Logger.error("❌ No se pudo obtener el código.")
+                
+        elif status == "open":
+            Logger.success("🚀 Sistema ONLINE.")
+            
+    except Exception as e:
+        Logger.error(f"❌ Error en arranque: {e}")
+# ==========================================
 # 🔄 LIFESPAN (Gestión de vida del servidor)
 # ==========================================
 @asynccontextmanager
@@ -15,6 +53,7 @@ async def lifespan(app: FastAPI):
 
     Logger.info("🚀 Webhook System: ONLINE")
     
+    asyncio.create_task(startup_task())
     yield
     
     Logger.info("🔌 Cerrando conexión con WhatsApp...")

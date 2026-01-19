@@ -1,6 +1,7 @@
 from typing import Optional
 from .async_instance import AsyncWhatsAppInstance
 from .async_sender import AsyncWhatsAppSender
+from colorstreak import Logger
 
 class AsyncWhatsappClient:
     """
@@ -16,11 +17,33 @@ class AsyncWhatsappClient:
 
     # --- CICLO DE VIDA (LifeCycle) ---
 
-    async def initialize(self):
-        """(Opcional) Verifica conexión al arrancar."""
-        # En async, los constructores no pueden hacer IO. 
-        # Si necesitas validar algo al inicio, hazlo aquí.
-        pass
+    async def initialize(self) -> str:
+        """
+        Inicialización Inteligente (Healthcheck + Auto-Create).
+        Retorna el estado final: 'open', 'created', 'close' (requiere QR).
+        """
+        Logger.info(f"🔄 Verificando instancia '{self._instance.name_instance}'...")
+        
+        state = await self._instance.get_state()
+        
+        if state == "not_found":
+            Logger.warning("⚠️ Instancia no encontrada. Creando nueva...")
+            result = await self.create()
+            if "error" in result:
+                Logger.error("❌ Fallo crítico creando instancia.")
+                return "error"
+            Logger.success("✅ Instancia creada correctamente.")
+            return "created" # Probablemente necesite QR ahora
+            
+        elif state == "open":
+            Logger.success("🚀 Instancia ONLINE y lista.")
+            return "open"
+            
+        elif state == "close":
+            Logger.warning("⚠️ Instancia existe pero está DESCONECTADA.")
+            return "close" # El usuario debe pedir el QR
+            
+        return state
     
     async def close(self):
         """Libera recursos del cliente HTTP."""

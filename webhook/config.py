@@ -16,7 +16,7 @@ WHATSAPP_SERVER_URL = os.getenv("WHATSAPP_SERVER_URL", "http://host.docker.inter
 
 
 client_whatsapp = AsyncWhatsappClient(
-    api_key=WHATSAPP_API_KEY,
-    instance_name=WHATSAPP_INSTANCE,
-    server_url=WHATSAPP_SERVER_URL,
-)
+        api_key=WHATSAPP_API_KEY,
+        instance_name=WHATSAPP_INSTANCE,
+        server_url=WHATSAPP_SERVER_URL,
+    )

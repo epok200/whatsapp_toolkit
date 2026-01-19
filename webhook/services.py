@@ -35,11 +35,3 @@ async def speech_to_text(audio_bytes: bytes) -> str:
     except Exception as e:
         Logger.error(f"❌ Error en STT: {e}")
         return "⚠️ Ocurrió un error al procesar el audio."
-
-
-
-
-
-
-
-
