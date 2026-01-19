@@ -82,6 +82,7 @@ class AsyncWhatsappClient:
              
         return "[Contenido no textual]"
     
+    
     async def download_media(self, message_data: dict, convert_to_mp4: bool = False) -> bytes:
         """
         Descarga media usando la URL base y la API Key configurada.

@@ -31,7 +31,6 @@ async def handler_reaction_love(event: MessageUpsert):
     """ Detecta reacciones de amor y responde con un mensaje cariñoso"""
     emoji = event.reaction_text
     
-    
     if emoji == "❤️":
         mensaje_id = event.reaction_target_id
         mensaje_reaccionado =  await client_whatsapp.get_message_content(mensaje_id)

@@ -191,7 +191,7 @@ uvicorn==0.38.0
     
 # Instalaciones manuales
 httpx==0.28.1
-whatsapp-toolkit==1.8.0
+whatsapp-toolkit==1.8.1
 groq==1.0.0
 """
 
