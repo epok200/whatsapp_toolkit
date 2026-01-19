@@ -22,18 +22,15 @@ async def startup_task():
         if status in ["created", "close"]:
             Logger.info("✨ Solicitando QR...")
             
-            # Ahora obtenemos el TEXTO (ej: "2@QmGb...")
             qr_string = await client_whatsapp.get_qr()
             
             if qr_string:
                 Logger.success("📸 ESCANEA ESTE CÓDIGO:")
                 
-                # --- DIBUJADO EN MEMORIA (Sin archivos) ---
                 qr = qrcode.QRCode()
                 qr.add_data(qr_string)
                 
                 print("\n\n") 
-                # invert=True es vital para que se vea bien en terminal negra
                 qr.print_ascii(invert=True) 
                 print("\n\n")
                 # ------------------------------------------
@@ -45,6 +42,7 @@ async def startup_task():
             
     except Exception as e:
         Logger.error(f"❌ Error en arranque: {e}")
+        
 # ==========================================
 # 🔄 LIFESPAN (Gestión de vida del servidor)
 # ==========================================

@@ -191,7 +191,7 @@ uvicorn==0.38.0
     
 # Instalaciones manuales
 httpx==0.28.1
-whatsapp-toolkit==1.8.5
+whatsapp-toolkit==1.9.0
 groq==1.0.0
 """
 
@@ -219,8 +219,10 @@ WHATSAPP_SERVER_URL=http://host.docker.internal:8080
 """
 
 # ================================ MINIMAL PYTHON SCRIPT ==============================
-_MAIN_WEBHOOK_PY ='''from contextlib import asynccontextmanager
+_MAIN_WEBHOOK_PY ='''import asyncio
+from contextlib import asynccontextmanager
 
+import qrcode
 from colorstreak import Logger
 from fastapi import FastAPI, Request
 
@@ -229,6 +231,40 @@ from .manager import webhook_manager
 
 
 # ==========================================
+# 🔄 TAREA DE ARRANQUE (Background)
+# ==========================================
+async def startup_task():
+    await asyncio.sleep(3)
+    Logger.info("🔄 [Background] Verificando conexión...")
+    
+    try:
+        status = await client_whatsapp.initialize()
+        
+        if status in ["created", "close"]:
+            Logger.info("✨ Solicitando QR...")
+            
+            qr_string = await client_whatsapp.get_qr()
+            
+            if qr_string:
+                Logger.success("📸 ESCANEA ESTE CÓDIGO:")
+                
+                qr = qrcode.QRCode()
+                qr.add_data(qr_string)
+                
+                print("\n\n") 
+                qr.print_ascii(invert=True) 
+                print("\n\n")
+                # ------------------------------------------
+            else:
+                Logger.error("❌ No se pudo obtener el código.")
+                
+        elif status == "open":
+            Logger.success("🚀 Sistema ONLINE.")
+            
+    except Exception as e:
+        Logger.error(f"❌ Error en arranque: {e}")
+        
+# ==========================================
 # 🔄 LIFESPAN (Gestión de vida del servidor)
 # ==========================================
 @asynccontextmanager
@@ -236,6 +272,7 @@ async def lifespan(app: FastAPI):
 
     Logger.info("🚀 Webhook System: ONLINE")
     
+    asyncio.create_task(startup_task())
     yield
     
     Logger.info("🔌 Cerrando conexión con WhatsApp...")

@@ -72,6 +72,7 @@ async def handler_audio(event: MessageUpsert):
                 number=event.remote_jid,
                 text=transcription
             )
+            
         except Exception as e:
             Logger.error(f"❌ Error al procesar audio: {e}")
             await client_whatsapp.send_text(

@@ -19,6 +19,7 @@ async def handle_messages(event: MessageUpsert):
     
     await message_router.route(event)
     
+    
 @webhook_manager.on(EventType.CONNECTION_UPDATE)
 async def handler_conection(event: ConnectionUpdate): # 1. ASYNC + Tipado correcto
     try:
@@ -39,6 +40,7 @@ async def handler_conection(event: ConnectionUpdate): # 1. ASYNC + Tipado correc
             if reason == 401:
                 Logger.warning("⚠️ La sesión fue cerrada (Logout). Se requiere nuevo escaneo de QR.")
                 # Aquí podrías disparar la lógica de reconexión o alertas
+                # TODO: Implementar lógica de reconexión si es necesario
                 
         elif state == "connecting":
             Logger.info("🟡 Conectando...")

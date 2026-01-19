@@ -144,7 +144,7 @@ class MediaMixin(BaseEvent):
 
 class ReactionMixin(BaseEvent):
     is_reaction: bool = False
-    reaction_target_id: str 
+    reaction_target_id: Optional[str] = None
     reaction_text: Optional[str] = None 
     
     @model_validator(mode="before")
