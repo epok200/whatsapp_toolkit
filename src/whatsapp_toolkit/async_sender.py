@@ -1,7 +1,11 @@
+import base64
+from typing import Any, Dict, Optional
+
 import httpx
-from typing import Optional, Dict, Any
 from colorstreak import Logger
+
 from .async_instance import AsyncWhatsAppInstance
+
 
 class AsyncWhatsAppSender:
     def __init__(self, instance: AsyncWhatsAppInstance):
@@ -116,3 +120,39 @@ class AsyncWhatsAppSender:
                     return msgs_container[0]
 
         return None
+    
+    
+    async def download_media(self, message_data: dict, convert_to_mp4: bool = False) -> bytes:
+        """
+        Descarga media reutilizando la conexión persistente del sender.
+        """
+        # Endpoint de Evolution para recuperar el Base64
+        url = f"/chat/getBase64FromMediaMessage/{self.instance_name}"
+        
+        payload = {
+            "message": message_data,
+            "convertToMp4": convert_to_mp4
+        }
+
+        try:
+            # Reutilizamos _post para aprovechar el manejo de errores
+            response = await self._post(url, payload)
+            
+            if response is None or not (200 <= response.status_code < 300):
+                Logger.error(f"❌ ERROR API Media. Code: {response.status_code if response else 'None'}")
+                raise ValueError("Error en respuesta de API Media")
+            
+            data = response.json()
+            base64_str = data.get("base64")
+            
+            if not base64_str:
+                Logger.error("La API conectó pero no devolvió base64")
+                raise ValueError("No se recibió base64")
+
+            return base64.b64decode(base64_str)
+
+        except Exception as e:
+            Logger.error(f"[Media Download] Error: {e}")
+            # Devolvemos bytes vacíos o re-lanzamos según prefieras. 
+            # Aquí re-lanzamos para que el handler sepa que falló.
+            raise e
