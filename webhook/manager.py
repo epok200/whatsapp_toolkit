@@ -1,7 +1,7 @@
 from colorstreak import Logger
 
 from whatsapp_toolkit.webhook import EventType, WebhookManager
-from whatsapp_toolkit.webhook.schemas import MessageUpsert, ConnectionUpdate
+from whatsapp_toolkit.webhook.schemas import ConnectionUpdate, MessageUpsert
 
 from .handlers import message_router
 
@@ -21,10 +21,8 @@ async def handle_messages(event: MessageUpsert):
     
     
 @webhook_manager.on(EventType.CONNECTION_UPDATE)
-async def handler_conection(event: ConnectionUpdate): # 1. ASYNC + Tipado correcto
+async def handler_conection(event: ConnectionUpdate):
     try:
-        # 2. ACCESO POR ATRIBUTOS (No uses .get)
-        # El modelo Pydantic ya extrajo y limpió los datos por ti.
         state = event.state
         reason = event.status_reason
         instance = event.instance
@@ -39,7 +37,6 @@ async def handler_conection(event: ConnectionUpdate): # 1. ASYNC + Tipado correc
             
             if reason == 401:
                 Logger.warning("⚠️ La sesión fue cerrada (Logout). Se requiere nuevo escaneo de QR.")
-                # Aquí podrías disparar la lógica de reconexión o alertas
                 # TODO: Implementar lógica de reconexión si es necesario
                 
         elif state == "connecting":

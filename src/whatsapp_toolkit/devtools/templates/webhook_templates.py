@@ -191,7 +191,7 @@ uvicorn==0.38.0
     
 # Instalaciones manuales
 httpx==0.28.1
-whatsapp-toolkit==1.9.0
+whatsapp-toolkit==1.9.1
 groq==1.0.0
 """
 
@@ -222,12 +222,12 @@ WHATSAPP_SERVER_URL=http://host.docker.internal:8080
 _MAIN_WEBHOOK_PY ='''import asyncio
 from contextlib import asynccontextmanager
 
-import qrcode
 from colorstreak import Logger
 from fastapi import FastAPI, Request
 
 from .config import client_whatsapp
 from .manager import webhook_manager
+from .services import get_qr
 
 
 # ==========================================
@@ -241,22 +241,7 @@ async def startup_task():
         status = await client_whatsapp.initialize()
         
         if status in ["created", "close"]:
-            Logger.info("✨ Solicitando QR...")
-            
-            qr_string = await client_whatsapp.get_qr()
-            
-            if qr_string:
-                Logger.success("📸 ESCANEA ESTE CÓDIGO:")
-                
-                qr = qrcode.QRCode()
-                qr.add_data(qr_string)
-                
-                print("\n\n") 
-                qr.print_ascii(invert=True) 
-                print("\n\n")
-                # ------------------------------------------
-            else:
-                Logger.error("❌ No se pudo obtener el código.")
+            await get_qr()
                 
         elif status == "open":
             Logger.success("🚀 Sistema ONLINE.")
@@ -304,4 +289,255 @@ async def endpoint(event_type: str, request: Request):
     await webhook_manager.dispatch(payload)
         
     return {"status": "ack"}
+'''
+
+# ================================ CONFIG PYTHON SCRIPT ==============================
+_CONFIG_WEBHOOK_PY = '''import os
+
+from dotenv import load_dotenv
+
+from whatsapp_toolkit import AsyncWhatsappClient
+
+load_dotenv()
+
+# Groq 
+#GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+
+# Whatsapp 
+WHATSAPP_API_KEY = os.getenv("WHATSAPP_API_KEY", "YOUR_WHATSAPP_API_KEY")
+WHATSAPP_INSTANCE = os.getenv("WHATSAPP_INSTANCE", "main")
+WHATSAPP_SERVER_URL = os.getenv("WHATSAPP_SERVER_URL", "http://host.docker.internal:8080")
+
+
+client_whatsapp = AsyncWhatsappClient(
+    api_key=WHATSAPP_API_KEY,
+    instance_name=WHATSAPP_INSTANCE,
+    server_url=WHATSAPP_SERVER_URL,
+)
+'''
+
+# ================================ MANAGER PYTHON SCRIPT ==============================
+_MANAGER_WEBHOOK_PY = '''from colorstreak import Logger
+
+from whatsapp_toolkit.webhook import EventType, WebhookManager
+from whatsapp_toolkit.webhook.schemas import ConnectionUpdate, MessageUpsert
+
+from .handlers import message_router
+
+webhook_manager = WebhookManager()
+
+
+@webhook_manager.on(EventType.MESSAGES_UPSERT)
+async def handle_messages(event: MessageUpsert):
+    """
+    Handler para eventos de mensajes nuevos (upsert).
+    """
+    es_mi_mensaje = event.from_me is True
+    if not es_mi_mensaje:
+        return  
+    
+    await message_router.route(event)
+    
+    
+@webhook_manager.on(EventType.CONNECTION_UPDATE)
+async def handler_conection(event: ConnectionUpdate):
+    try:
+        state = event.state
+        reason = event.status_reason
+        instance = event.instance
+        
+        Logger.info(f"📡 Estado Instancia '{instance}': {state}")
+        
+        if state == "open":
+            Logger.success("🟢 [Webhook] Conexión establecida exitosamente.")
+            
+        elif state == "close":
+            Logger.error(f"🔴 [Webhook] DESCONEXIÓN DETECTADA. Razón: {reason}")
+            
+            if reason == 401:
+                Logger.warning("⚠️ La sesión fue cerrada (Logout). Se requiere nuevo escaneo de QR.")
+                # TODO: Implementar lógica de reconexión si es necesario
+                
+        elif state == "connecting":
+            Logger.info("🟡 Conectando...")
+
+    except Exception as e:
+        Logger.error(f"[Webhook] Error crítico en handler de conexión: {e}")
+'''
+# ================================ HANDLERS PYTHON SCRIPT ==============================
+_HANDLERS_WEBHOOK_PY = '''from colorstreak import Logger
+#from .services import speech_to_text
+from .config import client_whatsapp
+from whatsapp_toolkit.webhook import MessageRouter, MessageType
+from whatsapp_toolkit.webhook.schemas import MessageUpsert
+#import base64
+
+
+message_router = MessageRouter()
+
+
+reporte_n = 0
+
+@message_router.on(MessageType.REACTION_MESSAGE)
+async def bug_reporter(event: MessageUpsert):
+    global reporte_n
+    
+    emoji = event.reaction_text
+    
+    if emoji == "🪲":
+        
+        mensaje = f"[Reporte # {reporte_n}] Generando reporte "
+        await client_whatsapp.send_text(
+                number=event.remote_jid,
+                text=mensaje
+            )
+        reporte_n += 1
+
+
+@message_router.on(MessageType.REACTION_MESSAGE)
+async def like(event: MessageUpsert):
+    """ Handler para reaccionar a un mensaje con un corazón. """
+    emoji = event.reaction_text
+    
+    if emoji == "❤️":
+        
+        mensaje_id = event.reaction_target_id
+        if not mensaje_id:
+            Logger.error("❌ No se encontró el ID del mensaje reaccionado.")
+            return
+        
+        mensaje_reaccionado =  await client_whatsapp.get_message_content(mensaje_id)
+        
+        mensaje = f"Te gusto el mensaje _'{mensaje_reaccionado}'_"
+        await client_whatsapp.send_text(
+                number=event.remote_jid,
+                text=mensaje
+            )
+
+
+@message_router.text()
+async def handler_text(event: MessageUpsert):
+    key_word = "@bot"
+    message =  event.body.lower().split()
+    
+    if key_word in message:
+        await client_whatsapp.send_text(
+            number=event.remote_jid,
+            text="🤖 ¡Hola! ¿En qué puedo ayudarte hoy?"
+        )
+    Logger.info(f"💬 Mensaje de texto recibido: {event.body}")
+
+
+@message_router.on(MessageType.AUDIO_MESSAGE)
+async def handler_audio(event: MessageUpsert):
+        Logger.info(f"🎙️ Procesando audio de {event.media_seconds} segundos...")
+        
+        # try:
+        #     audio_bytes = await client_whatsapp.download_media(
+        #         message_data=event.raw, 
+        #     )
+            
+        #     transcription = await speech_to_text(audio_bytes)
+            
+            
+        #     await client_whatsapp.send_text(
+        #         number=event.remote_jid,
+        #         text=transcription
+        #     )
+            
+        # except Exception as e:
+        #     Logger.error(f"❌ Error al procesar audio: {e}")
+        #     await client_whatsapp.send_text(
+        #         number=event.remote_jid,
+        #         text="⚠️ Ocurrió un error al procesar el audio."
+        #     )
+ 
+
+@message_router.on(MessageType.IMAGE_MESSAGE)
+async def handler_image(event: MessageUpsert):
+    Logger.info(f"🖼️ Imagen recibida con caption: {event.body}")
+    
+    # try:
+    #     image_bytes = await client_whatsapp.download_media(
+    #         message_data=event.raw, 
+    #     )
+    #     image_b64 = base64.b64encode(image_bytes).decode('utf-8')
+
+    #     await client_whatsapp.send_media(
+    #         number=event.remote_jid,
+    #         media_b64=image_b64,
+    #         filename="imagen_recibida.jpg",
+    #         caption="Aquí está la imagen que enviaste."
+    #     )
+        
+    # except Exception as e:
+    #     Logger.error(f"❌ Error al procesar imagen: {e}")
+    #     await client_whatsapp.send_text(
+    #         number=event.remote_jid,
+    #         text="⚠️ Ocurrió un error al procesar la imagen."
+    #     )
+'''
+# ================================ SERVICES PYTHON SCRIPT ==============================
+_SERVICES_WEBHOOK_PY = '''#import io
+
+import qrcode
+from colorstreak import Logger
+#from groq import AsyncGroq, RateLimitError
+
+from .config import  WHATSAPP_SERVER_URL, client_whatsapp #, GROQ_API_KEY,
+
+EVOLUTION_BASE_URL = WHATSAPP_SERVER_URL
+
+# groq_client = AsyncGroq(api_key=GROQ_API_KEY)
+
+
+
+# async def speech_to_text(audio_bytes: bytes) -> str:
+#     """
+#     Función ficticia para convertir audio a texto.
+#     En un caso real, aquí se integraría con un servicio de STT.
+#     """
+#     try:
+#         audio_file = io.BytesIO(audio_bytes)
+#         audio_file.name = "audio.ogg"
+        
+#         transcription = await groq_client.audio.transcriptions.create(
+#             file=audio_file,
+#             model="whisper-large-v3",
+#             prompt="El audio es en español. Transcríbelo tal cual. ponle emojis si hay emociones.",
+#         )
+        
+#         return transcription.text
+    
+#     except RateLimitError:
+#         Logger.error("🚦 Tráfico alto en Groq (Rate Limit). Esperando...")
+#         return "⚠️ El sistema está saturado, intenta de nuevo en un minuto."
+        
+#     except Exception as e:
+#         Logger.error(f"❌ Error en STT: {e}")
+#         return "⚠️ Ocurrió un error al procesar el audio."
+
+
+
+
+async def get_qr()-> None:
+    """ Obtiene y muestra el código QR para la autenticación de WhatsApp. """
+    Logger.info("✨ Solicitando QR...")
+    try:
+        qr_string = await client_whatsapp.get_qr()
+        
+        if qr_string:
+            Logger.success("📸 ESCANEA ESTE CÓDIGO:")
+            
+            qr = qrcode.QRCode()
+            qr.add_data(qr_string)
+            
+            print("\n\n") 
+            qr.print_ascii(invert=True) 
+            print("\n\n")
+            # TODO: IMPLEMENTAR REFRESCAR AUTOMÁTICO SI CADUCA
+        else:
+            Logger.error("❌ No se pudo obtener el código QR.")
+    except Exception as e:
+        Logger.error(f"❌ Error al obtener QR: {e}")
 '''

@@ -1,12 +1,12 @@
 import asyncio
 from contextlib import asynccontextmanager
 
-import qrcode
 from colorstreak import Logger
 from fastapi import FastAPI, Request
 
 from .config import client_whatsapp
 from .manager import webhook_manager
+from .services import get_qr
 
 
 # ==========================================
@@ -20,22 +20,7 @@ async def startup_task():
         status = await client_whatsapp.initialize()
         
         if status in ["created", "close"]:
-            Logger.info("✨ Solicitando QR...")
-            
-            qr_string = await client_whatsapp.get_qr()
-            
-            if qr_string:
-                Logger.success("📸 ESCANEA ESTE CÓDIGO:")
-                
-                qr = qrcode.QRCode()
-                qr.add_data(qr_string)
-                
-                print("\n\n") 
-                qr.print_ascii(invert=True) 
-                print("\n\n")
-                # ------------------------------------------
-            else:
-                Logger.error("❌ No se pudo obtener el código.")
+            await get_qr()
                 
         elif status == "open":
             Logger.success("🚀 Sistema ONLINE.")

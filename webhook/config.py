@@ -7,7 +7,7 @@ from whatsapp_toolkit import AsyncWhatsappClient
 load_dotenv()
 
 # Groq 
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+#GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 # Whatsapp 
 WHATSAPP_API_KEY = os.getenv("WHATSAPP_API_KEY", "YOUR_WHATSAPP_API_KEY")
