@@ -191,7 +191,7 @@ uvicorn==0.38.0
     
 # Instalaciones manuales
 httpx==0.28.1
-whatsapp-toolkit==1.9.1
+whatsapp-toolkit==1.9.2
 groq==1.0.0
 """
 
@@ -532,9 +532,9 @@ async def get_qr()-> None:
             qr = qrcode.QRCode()
             qr.add_data(qr_string)
             
-            print("\n\n") 
+            print("\\n\\n") 
             qr.print_ascii(invert=True) 
-            print("\n\n")
+            print("\\n\\n")
             # TODO: IMPLEMENTAR REFRESCAR AUTOMÁTICO SI CADUCA
         else:
             Logger.error("❌ No se pudo obtener el código QR.")
