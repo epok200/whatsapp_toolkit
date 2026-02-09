@@ -56,8 +56,14 @@ class AsyncWhatsAppInstance:
                 Logger.debug(f"Estado de instancia '{self.name_instance}': {resp.status_code} - {resp.text}")
                 
                 if resp.status_code == 200:
-                    # Evolution devuelve: { "instance": "main", "state": "open" }
-                    return resp.json().get("state", "unknown")
+                    data = resp.json()
+                    
+                    state = data.get("state")
+                    
+                    if not state and "instance" in data:
+                        state = data["instance"].get("state")
+                        
+                    return state or "unknown"
                 
                 if resp.status_code == 404:
                     return "not_found"

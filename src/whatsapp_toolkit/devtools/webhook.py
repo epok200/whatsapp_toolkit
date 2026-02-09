@@ -45,6 +45,9 @@ def _webhook_required_paths(paths: PathConfig) -> Files:
         File.from_path("services_webhook", "services.py", webhook_dir),
         File.from_path("handlers_webhook", "handlers.py", webhook_dir),
         File.from_path("manager_webhook", "manager.py", webhook_dir),
+
+        # Docs
+        File.from_path("readme_webhook", "README.md", webhook_dir),
     ]
     return Files.from_list(list_file)
 
@@ -92,6 +95,7 @@ class WebhookStackInitializer(BaseStackInitializer):
         services_webhook_path = files.get_path("services_webhook")
         handlers_webhook_path = files.get_path("handlers_webhook")
         manager_webhook_path = files.get_path("manager_webhook")
+        readme_webhook_path = files.get_path("readme_webhook")
 
         port = str(self.port())
 
@@ -127,6 +131,7 @@ class WebhookStackInitializer(BaseStackInitializer):
         services_webhook_file = temp._SERVICES_WEBHOOK_PY
         handlers_webhook_file = temp._HANDLERS_WEBHOOK_PY
         manager_webhook_file = temp._MANAGER_WEBHOOK_PY
+        readme_webhook_file = temp._README_WEBHOOK_MD.replace("{PORT}", port)
 
         files_and_paths_list = [
             # server files
@@ -141,6 +146,9 @@ class WebhookStackInitializer(BaseStackInitializer):
             (services_webhook_file, services_webhook_path),
             (handlers_webhook_file, handlers_webhook_path),
             (manager_webhook_file, manager_webhook_path),
+
+            # docs
+            (readme_webhook_file, readme_webhook_path),
         ]
 
         for content, path in files_and_paths_list:

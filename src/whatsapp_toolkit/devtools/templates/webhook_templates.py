@@ -218,6 +218,93 @@ WHATSAPP_INSTANCE=main
 WHATSAPP_SERVER_URL=http://host.docker.internal:8080
 """
 
+
+# =============================== README WEBHOOK ==============================
+# Vive en: ./webhook/README.md
+#
+# README básico para el usuario final: cómo inicializar, configurar y levantar
+# el webhook con Docker Compose usando los DevTools del paquete.
+#
+_README_WEBHOOK_MD = """# WhatsApp Toolkit - Webhook
+
+Este folder contiene un webhook de ejemplo (FastAPI) para consumir eventos de tu proveedor (Evolution).
+
+## Estructura
+
+- `.wtk/webhook/` (generado por el toolkit)
+    - `docker-compose.yml`, `Dockerfile`, `.env`, `requirements.txt`
+    - Esta carpeta es el *stack* y es donde se corre `docker compose`.
+- `webhook/` (tu código)
+    - `main.py`, `config.py`, `manager.py`, `handlers.py`, `services.py`, `.env`
+    - Esta carpeta se monta dentro del contenedor como volumen (no se copia en el build).
+
+## Requisitos
+
+- Docker instalado (con `docker compose`).
+- Un servidor Evolution accesible desde el contenedor.
+    - Por defecto el webhook usa `WHATSAPP_SERVER_URL=http://host.docker.internal:8080`.
+    - En macOS/Windows `host.docker.internal` suele funcionar out-of-the-box.
+
+## Configuración
+
+Edita `webhook/.env`:
+
+- `WHATSAPP_API_KEY`: tu API key
+- `WHATSAPP_INSTANCE`: nombre de instancia (default: `main`)
+- `WHATSAPP_SERVER_URL`: URL base de tu servidor Evolution
+
+## Inicializar el stack
+
+Desde la raíz de tu proyecto:
+
+```bash
+whatsapp-toolkit webhook init --api-key "TU_API_KEY"
+```
+
+Esto crea/actualiza:
+
+- `.wtk/webhook/*` (archivos de Docker Compose)
+- `webhook/*` (código del webhook)
+
+## Levantar el webhook
+
+```bash
+whatsapp-toolkit webhook up --build
+```
+
+Luego abre la documentación interactiva:
+
+- `http://localhost:{PORT}/docs`
+
+Nota: si ves que el CLI imprime `/doc`, en FastAPI el default suele ser `/docs`.
+
+## Endpoint de entrada
+
+El webhook expone un endpoint único:
+
+- `POST /evolution/webhook/{event_type}`
+
+Ejemplos de `event_type` usados en este scaffold:
+
+- `messages.upsert`
+- `connection.update`
+
+Los eventos desconocidos se ignoran (fast-fail) y devuelven `{"status": "ignored"}`.
+
+## Logs
+
+```bash
+whatsapp-toolkit webhook logs --follow
+```
+
+## Parar y limpiar
+
+```bash
+whatsapp-toolkit webhook stop
+whatsapp-toolkit webhook down
+```
+"""
+
 # ================================ MINIMAL PYTHON SCRIPT ==============================
 _MAIN_WEBHOOK_PY ='''import asyncio
 from contextlib import asynccontextmanager
