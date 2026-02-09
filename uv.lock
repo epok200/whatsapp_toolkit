@@ -1177,7 +1177,7 @@ wheels = [
 
 [[package]]
 name = "whatsapp-toolkit"
-version = "1.9.2"
+version = "1.9.4"
 source = { editable = "." }
 dependencies = [
     { name = "colorstreak" },

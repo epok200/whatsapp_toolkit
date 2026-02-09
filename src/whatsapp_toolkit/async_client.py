@@ -20,30 +20,40 @@ class AsyncWhatsappClient:
     async def initialize(self) -> str:
         """
         Inicialización Inteligente (Healthcheck + Auto-Create).
-        Retorna el estado final: 'open', 'created', 'close' (requiere QR).
+        Retorna: 'open', 'connecting', 'close', 'created' o 'error'.
         """
         Logger.info(f"🔄 Verificando instancia '{self._instance.name_instance}'...")
         
         state = await self._instance.get_state()
         
-        if state == "not_found":
-            Logger.warning("⚠️ Instancia no encontrada. Creando nueva...")
-            result = await self.create()
-            if "error" in result:
-                Logger.error("❌ Fallo crítico creando instancia.")
+        match state:
+            case "open":
+                Logger.success("🚀 Instancia ONLINE y lista.")
+                return "open"
+
+            case "connecting":
+                Logger.info("🟡 Instancia intentando conectar...")
+                return "connecting"
+            
+            case "close":
+                Logger.warning("⚠️ Instancia existe pero está DESCONECTADA (Requiere QR).")
+                return "close"
+                
+            case "not_found":
+                # AQUÍ MANTENEMOS LA LÓGICA DE AUTO-CREACIÓN
+                Logger.warning("⚠️ Instancia no encontrada. Creando nueva...")
+                result = await self.create()
+                
+                if "error" in result:
+                    Logger.error("❌ Fallo crítico creando instancia.")
+                    return "error"
+                    
+                Logger.success("✅ Instancia creada correctamente.")
+                return "created"
+                
+            case _:
+                Logger.error(f"❌ Estado desconocido o error: {state}")
                 return "error"
-            Logger.success("✅ Instancia creada correctamente.")
-            return "created" # Probablemente necesite QR ahora
-            
-        elif state == "open":
-            Logger.success("🚀 Instancia ONLINE y lista.")
-            return "open"
-            
-        elif state == "close":
-            Logger.warning("⚠️ Instancia existe pero está DESCONECTADA.")
-            return "close" # El usuario debe pedir el QR
-            
-        return state
     
     async def close(self):
         """Libera recursos del cliente HTTP."""
