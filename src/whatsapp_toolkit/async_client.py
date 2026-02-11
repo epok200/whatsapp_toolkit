@@ -2,6 +2,7 @@ from typing import Optional
 from .async_instance import AsyncWhatsAppInstance
 from .async_sender import AsyncWhatsAppSender
 from colorstreak import Logger
+from .webhook.schemas import MessageUpsert
 
 class AsyncWhatsappClient:
     """
@@ -87,33 +88,25 @@ class AsyncWhatsappClient:
     async def send_location(self, number: str, lat: float, long: float, address: str = "") -> bool:
         return await self._sender.send_location(number, lat, long, address)
     
-    async def get_message_content(self, message_id: str) -> str:
+    async def get_message(self, message_id: str) -> Optional[MessageUpsert]:
         """
-        Recupera SOLAMENTE el texto del mensaje.
+        Recupera un mensaje por ID y lo devuelve como un objeto MessageUpsert.
+        Esto permite usar las mismas propiedades (.body, .media_url, .is_audio)
+        que usas en el webhook.
         """
-        # El sender ya nos devuelve el registro exacto, sin basura extra.
-        msg_record = await self._sender.find_message(message_id)
+        raw_msg = await self._sender.find_message(message_id)
         
-        if not msg_record:
-            return "[Mensaje no encontrado]"
-            
-        # Extraemos el contenido del payload 'message'
-        base_msg = msg_record.get("message", {})
-        
-        # Jerarquía de extracción
-        if "conversation" in base_msg:
-            return base_msg["conversation"]
-            
-        elif "extendedTextMessage" in base_msg:
-            return base_msg.get("extendedTextMessage", {}).get("text", "")
-            
-        elif "imageMessage" in base_msg:
-            return base_msg.get("imageMessage", {}).get("caption", "[Imagen]")
-            
-        elif "videoMessage" in base_msg:
-             return base_msg.get("videoMessage", {}).get("caption", "[Video]")
-             
-        return "[Contenido no textual]"
+        if not raw_msg:
+            return None
+
+
+        payload_simulado = {
+            "event": "messages.upsert",
+            "instance": self._instance.name_instance, 
+            "data": raw_msg
+        }
+
+        return MessageUpsert.model_validate(payload_simulado)
     
     
     async def download_media(self, message_data: dict, convert_to_mp4: bool = False) -> bytes:
