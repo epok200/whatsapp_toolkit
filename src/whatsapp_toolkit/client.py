@@ -240,40 +240,46 @@ class WhatsappClient(BaseClient):
     #     return False
 
 
-    def send_text(self, number: str, text: str, link_preview: bool = True, delay_ms: int = 1000):
+    def send_text(self, number: str, text: str, link_preview: bool = True, delay_ms: int = 1000, quoted: dict | None = None):
         sender = self._sender
         if sender is None:
             return False
-        return sender.send_text(number, text, link_preview, delay_ms=delay_ms)
+        return sender.send_text(number, text, link_preview, delay_ms=delay_ms, quoted=quoted)
 
 
-    def send_media(self, number: str, media_b64: str, filename: str, caption: str, mediatype: str = "document", mimetype: str = "application/pdf",):
+    def send_media(self, number: str, media_b64: str, filename: str, caption: str, mediatype: str = "document", mimetype: str = "application/pdf", quoted: dict | None = None):
         sender = self._sender
         if sender is None:
             return False
-        return sender.send_media(number, media_b64, filename, caption, mediatype, mimetype)
+        return sender.send_media(number, media_b64, filename, caption, mediatype, mimetype, quoted=quoted)
 
 
-    def send_sticker(self, number: str, sticker_b64: str, delay: int = 0, link_preview: bool = True, mentions_everyone: bool = True,):
+    def send_sticker(self, number: str, sticker_b64: str, delay: int = 0, link_preview: bool = True, mentions_everyone: bool = True, quoted: dict | None = None):
         sender = self._sender
         if sender is None:
             return False
-        return sender.send_sticker(number, sticker_b64, delay, link_preview, mentions_everyone)
+        return sender.send_sticker(number, sticker_b64, delay, link_preview, mentions_everyone, quoted=quoted)
 
 
-    def send_location(self, number: str, name: str, address: str, latitude: float, longitude: float, delay: int = 0,):
+    def send_location(self, number: str, name: str, address: str, latitude: float, longitude: float, delay: int = 0, quoted: dict | None = None):
         sender = self._sender
         if sender is None:
             return False
-        return sender.send_location(number, name, address, latitude, longitude, delay)
+        return sender.send_location(number, name, address, latitude, longitude, delay, quoted=quoted)
 
 
-    def send_audio(self, number: str, audio_b64: str, delay: int = 0):
+    def send_audio(self, number: str, audio_b64: str, delay: int = 0, quoted: dict | None = None):
         sender = self._sender
         if sender is None:
             return False
-        return sender.send_audio(number, audio_b64, delay)
+        return sender.send_audio(number, audio_b64, delay, quoted=quoted)
 
+
+    def send_reaction(self, remote_jid: str, message_id: str, reaction: str, from_me: bool = False):
+        sender = self._sender
+        if sender is None:
+            return False
+        return sender.send_reaction(remote_jid, message_id, reaction, from_me)
 
     def connect_number(self, number: str):
         sender = self._sender

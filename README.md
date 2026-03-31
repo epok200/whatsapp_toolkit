@@ -1,419 +1,500 @@
 
 # Whatsapp Toolkit
 
-Versión: **1.5.1**
+Version: **2.2.0**
 
-Librería ligera para enviar mensajes de WhatsApp a través de la API de Envole (WhatsApp Baileys).
-
-Permite:
-
-- Crear y administrar instancias de WhatsApp.
-- Conectar una instancia escaneando un código QR.
-- Enviar mensajes de texto, documentos (PDF), imágenes, stickers, ubicación y audio (nota de voz).
-
-Toda la API pública se expone desde el módulo `whatsapp_toolkit`.
+Libreria Python para interactuar con WhatsApp a traves de [Evolution API](https://doc.evolution-api.com/). Soporta clientes sincronos y asincronos, envio de mensajes, reacciones, respuestas citadas, webhook con routing de eventos, y herramientas de desarrollo local.
 
 ---
 
-## Instalación
-
-Con UV Package Manager:
+## Instalacion
 
 ```bash
 uv add whatsapp-toolkit
 ```
 
-Con pip:
+O con pip:
 
 ```bash
 pip install whatsapp-toolkit
 ```
 
-### Requisitos
-
-- Python 3.10 o superior
-- `requests >= 2.32.5`
+**Requisitos:** Python 3.10+
 
 ---
 
-## Arrancar el server local (integrado)
+## Configuracion
 
-La librería ya incluye un modo de **arranque del server** (Evolution API) pensado para desarrollo local, usando Docker Compose. El flujo de uso está tal cual en los tests (ver `test/test_wakpeup_evo.py`).
+Variables de entorno necesarias:
 
-### 1) Generar plantillas (docker-compose + env)
-
-Esto crea (en el directorio que elijas):
-
-- `docker-compose.yml`
-- `.env.example` (ejemplo; debes copiarlo a `.env` y completar secretos)
-- `wakeup_evolution.sh`
-
-```python
-from whatsapp_toolkit import devtools
-
-devtools.init_local_evolution(
-    path=".",
-    overwrite=False,
-    verbose=True,
-)
-```
-
-### 2) Configurar secretos para Docker
-
-Copia `.env.example` a `.env` y configura al menos:
-
-- `AUTHENTICATION_API_KEY` (la API key del server Evolution)
-- `POSTGRES_PASSWORD`
-
-Además, para el cliente Python, normalmente usarás:
-
-- `WHATSAPP_API_KEY`
-- `WHATSAPP_INSTANCE`
-- `WHATSAPP_SERVER_URL` (por defecto `http://localhost:8080/`)
-
-### 3) Levantar / ver logs / bajar el stack desde Python
-
-Ejemplo (idéntico al test):
-
-```python
-from whatsapp_toolkit import devtools
-
-stack = devtools.local_evolution(path=".")
-
-stack.start(
-    detached=False,
-    build=True,
-    verbose=True,
-)
-
-# Ver logs en vivo
-stack.logs(follow=True)
-```
-
-Comandos útiles:
-
-```python
-from whatsapp_toolkit import devtools
-
-stack = devtools.local_evolution(".")
-
-stack.start(detached=True)   # Levanta en background
-stack.stop()                 # Stop sin borrar volúmenes
-stack.down(volumes=False)    # Down (opcional: volumes=True para limpiar datos)
-stack.logs(service=None)     # o service="evolution-api"
-```
-
-### Alternativa: script shell
-
-Si prefieres, también puedes levantar con el script:
-
-```bash
-./wakeup_evolution.sh
-```
-
-UI del manager:
-
-- `http://localhost:8080/manager/`
+| Variable | Descripcion | Default |
+|---|---|---|
+| `WHATSAPP_API_KEY` | API key de Evolution API | - |
+| `WHATSAPP_INSTANCE` | Nombre de la instancia | `"con"` |
+| `WHATSAPP_SERVER_URL` | URL del servidor Evolution | `"http://localhost:8080/"` |
 
 ---
 
-## Componentes principales
-
-```python
-from whatsapp_toolkit import (
-    WhatsappClient,
-    PDFGenerator,
-    obtener_gif_base64,
-    obtener_imagen_base64,
-)
-```
-
-- `WhatsappClient`: cliente principal para gestionar la instancia y enviar mensajes.
-- `PDFGenerator`: utilidad para generar un PDF simple y devolverlo en base64 listo para enviar.
-- `obtener_gif_base64()`: descarga un GIF y lo devuelve en base64 para usarlo como sticker.
-- `obtener_imagen_base64()`: lee una imagen incluida en el paquete y la devuelve en base64 para enviarla como foto.
-
-Internamente se usan los objetos `WhatsAppInstance` y `WhatsAppSender`, pero normalmente no necesitas usarlos directamente.
-
----
-
-## Configuración rápida
-
-La forma más sencilla de trabajar es usando variables de entorno, igual que en los tests del proyecto.
-
-Variables de entorno esperadas:
-
-- `WHATSAPP_API_KEY`: API key de Envole.
-- `WHATSAPP_INSTANCE`: nombre de la instancia (por ejemplo, `"con"`).
-- `WHATSAPP_SERVER_URL`: URL del servidor de Envole. Si no se define, se usa `"http://localhost:8080/"`.
-
-Ejemplo mínimo de inicialización:
+## Cliente Sincrono
 
 ```python
 import os
 from whatsapp_toolkit import WhatsappClient
 
-API_KEY = os.getenv("WHATSAPP_API_KEY", "")
-INSTANCE = os.getenv("WHATSAPP_INSTANCE", "con")
-SERVER_URL = os.getenv("WHATSAPP_SERVER_URL", "http://localhost:8080/")
+client = WhatsappClient(
+    api_key=os.getenv("WHATSAPP_API_KEY", ""),
+    server_url=os.getenv("WHATSAPP_SERVER_URL", "http://localhost:8080/"),
+    instance_name=os.getenv("WHATSAPP_INSTANCE", "con"),
+)
 
-client = WhatsappClient(API_KEY, SERVER_URL, INSTANCE)
-
-# Si la instancia aún no está enlazada, muestra QR y escanea con tu WhatsApp
+# Conectar escaneando QR si la instancia no esta enlazada
 client.connect_instance_qr()
 ```
 
-Nota: `WhatsappClient` inicializa internamente el sender cuando detecta que la instancia ya está enlazada.
-Si acabas de escanear el QR, puede ser necesario reiniciar el proceso y crear un nuevo `WhatsappClient`.
+### Enviar mensajes
 
----
-
-## Enviar mensajes básicos
-
-### Texto
-
-Los números deben ir en formato internacional, por ejemplo México: `5214771234567`.
+Los numeros van en formato internacional (ej. Mexico: `5214771234567`).
 
 ```python
-client.send_text(
-    number="5214771234567",
-    text="¡Hola! Este es un mensaje de prueba 🚀",
-    delay_ms=0,  # opcional, delay entre envíos en milisegundos
-)
+# Texto
+client.send_text("5214771234567", "Hola mundo")
+
+# Imagen
+client.send_media("5214771234567", imagen_b64, "foto.jpg", "Mi foto", mediatype="image", mimetype="image/jpeg")
+
+# Documento (PDF)
+client.send_media("5214771234567", pdf_b64, "archivo.pdf", "Documento adjunto")
+
+# Audio (nota de voz)
+client.send_audio("5214771234567", audio_b64)
+
+# Sticker
+client.send_sticker("5214771234567", gif_b64)
+
+# Ubicacion
+client.send_location("5214771234567", "Mi lugar", "Calle 123", 19.4326, -99.1332)
 ```
 
-### PDF como documento
-
-Usando el generador incluido, igual que en los tests:
+### Reaccionar a un mensaje
 
 ```python
-from whatsapp_toolkit import PDFGenerator
-
-pdf_b64 = PDFGenerator.generar_pdf_base64(
-    titulo="Prueba de PDF",
-    subtitulo="Este PDF fue generado automáticamente.",
+client.send_reaction(
+    remote_jid="5214771234567@s.whatsapp.net",
+    message_id="BAE58DA6CBC941BC",
+    reaction="🚀",
+    from_me=False,
 )
 
-client.send_media(
-    number="5214771234567",
-    media_b64=pdf_b64,
-    filename="prueba_envole_api.pdf",
-    caption="Aquí tienes el PDF solicitado.",
-    # mediatype y mimetype por default ya son de documento/PDF
-)
+# Quitar reaccion
+client.send_reaction("5214771234567@s.whatsapp.net", "BAE58DA6CBC941BC", reaction="")
 ```
 
-### Imagen como foto
+### Responder/citar un mensaje
 
-El propio paquete trae una imagen de ejemplo que puedes reutilizar tal como se hace en los tests:
+Todos los metodos `send_*` aceptan el parametro opcional `quoted`:
 
 ```python
-from whatsapp_toolkit import obtener_imagen_base64
+quoted = {
+    "key": {"id": "BAE58DA6CBC941BC"},
+    "message": {"conversation": "Mensaje original"}
+}
 
-imagen_b64 = obtener_imagen_base64()
-
-client.send_media(
-    number="5214771234567",
-    media_b64=imagen_b64,
-    filename="prueba_imagen.jpg",
-    caption="Aquí tienes la imagen solicitada.",
-    mediatype="image",
-    mimetype="image/jpeg",
-)
+client.send_text("5214771234567", "Esta es mi respuesta", quoted=quoted)
+client.send_media("5214771234567", img_b64, "foto.jpg", "Respuesta con imagen", mediatype="image", mimetype="image/jpeg", quoted=quoted)
 ```
 
-### Sticker
-
-Puedes enviar un GIF como sticker pasando el base64 del GIF animado:
+### Administracion de instancia
 
 ```python
-from whatsapp_toolkit import obtener_gif_base64
-
-gif_b64 = obtener_gif_base64()
-
-client.send_sticker(
-    number="5214771234567",
-    sticker_b64=gif_b64,
-)
-```
-
-### Ubicación
-
-```python
-client.send_location(
-    number="5214771234567",
-    name="Ubicación de prueba",
-    address="Calle Falsa 123, Ciudad Ejemplo",
-    latitude=19.4326,
-    longitude=-99.1332,
-)
-```
-
-### Audio (nota de voz)
-
-Para enviar audio solo necesitas una cadena base64 del archivo OGG/OPUS (o WAV) que quieras mandar. El proyecto incluye en los tests un ejemplo de generación de audio con Piper, pero en producción puedes usar cualquier TTS o grabación propia:
-
-```python
-audio_b64 = "..."  # audio en base64 (OGG/OPUS recomendado)
-
-client.send_audio(
-    number="5214771234567",
-    audio_b64=audio_b64,
-)
-```
-
----
-
-## Administración de instancia y grupos
-
-Algunos métodos útiles del cliente:
-
-```python
-# Crear y borrar instancia
-client.create_instance()       # Crea una nueva instancia en el servidor Envole
-client.delete_instance()       # Elimina la instancia actual
-
-# Forzar mostrar QR manualmente en cualquier momento
+client.create_instance()
+client.delete_instance()
 client.connect_instance_qr()
-
-# Obtener grupos (2 sabores)
-# - raw: lista de dicts tal cual responde la API
-groups_raw = client.get_groups_raw(get_participants=True)
-
-# - typed: parsea/valida a modelos Pydantic (ver whatsapp_toolkit.schemas)
-groups = client.get_groups_typed(get_participants=True)
-
-# Forzar conexión a un número específico (cuando la API lo soporta)
 client.connect_number("5214771234567")
 ```
 
-### Obtener grupos (raw vs typed)
-
-La librería incluye una forma nueva y más cómoda de **obtener y trabajar con grupos**.
-
-- `client.get_groups_raw(get_participants=True)` devuelve `list[dict]` (JSON crudo del endpoint `/group/fetchAllGroups/{instance}`), útil si quieres guardarlo tal cual.
-- `client.get_groups_typed(get_participants=True)` devuelve un objeto `Groups` (Pydantic), útil para buscar/filtrar y trabajar con tipos.
-
-Ejemplo recomendado (similar a lo que hace [test/test_api.py](test/test_api.py)):
+### Grupos
 
 ```python
-from whatsapp_toolkit import WhatsappClient
+# Raw (lista de dicts)
+groups_raw = client.get_groups_raw(get_participants=True)
+
+# Tipado (modelo Pydantic)
 from whatsapp_toolkit.schemas import Groups
 
-client = WhatsappClient(API_KEY, SERVER_URL, INSTANCE)
+groups: Groups = client.get_groups_typed(get_participants=True)
+print(groups.count_by_kind())
 
-# Si la instancia aún no está enlazada, muestra QR y escanea
-# client.connect_instance_qr()
-
-grupos: Groups | None = client.get_groups_typed(get_participants=True)
-if grupos is None:
-    raise RuntimeError("No se pudo obtener la lista de grupos")
-
-print(grupos)                 # resumen: cuántos grupos y cuántos fallaron
-print(grupos.count_by_kind()) # community_root / community_announce_child / regular_group
-
-# Buscar por texto (match parcial, con scoring simple)
-for g in grupos.search_group("club"):
-    print(g.id, g.subject, g.kind)
-
-# Buscar por ID exacto
-g = grupos.get_group_by_id("120363405715130432@g.us")
-if g:
-    print(g.subject, "participantes:", len(g.participants))
+for g in groups.search_group("club"):
+    print(g.id, g.subject)
 ```
-
-Notas:
-
-- Si llamas con `get_participants=False`, el endpoint puede devolver menos datos; en ese caso, `get_groups_typed()` puede marcar algunos grupos como inválidos y moverlos a `Groups.fails`.
-- Si necesitas persistir los resultados para analizarlos offline, usa `get_groups_raw()` y guárdalo como JSON.
-
-### Cache de grupos (MongoDB)
-
-Para evitar pedir los grupos a la API en cada ejecución, puedes activar cache persistente usando `MongoCacheBackend`.
-
-Cómo funciona:
-
-- La clave de cache se calcula por instancia y por el flag `get_participants`.
-- Se guarda un “snapshot” en Mongo con campo `created_at` y un índice TTL. Cuando el documento expira, Mongo lo elimina automáticamente.
-- Para usarlo, crea el backend y pásalo a `WhatsappClient(..., cache=backend)`. Luego llama `get_groups_typed(..., cache=True)`.
-
-Ejemplo (basado en [test/test_api.py](test/test_api.py)):
-
-```python
-import os
-from whatsapp_toolkit import WhatsappClient, MongoCacheBackend
-from whatsapp_toolkit.schemas import Groups
-
-API_KEY = os.getenv("WHATSAPP_API_KEY", "")
-INSTANCE = os.getenv("WHATSAPP_INSTANCE", "con")
-SERVER_URL = os.getenv("WHATSAPP_SERVER_URL", "http://localhost:8080/")
-URL_MONGO = os.getenv("URL_MONGO", "")  # ej: mongodb://user:pass@localhost:27017/db
-
-cache_engine = MongoCacheBackend(
-    uri=URL_MONGO,
-    ttl_seconds=1000,  # segundos
-)
-cache_engine.warmup()  # asegura conexión + índices
-
-client = WhatsappClient(
-    api_key=API_KEY,
-    server_url=SERVER_URL,
-    instance_name=INSTANCE,
-    cache=cache_engine,
-)
-
-grupos: Groups | None = client.get_groups_typed(
-    get_participants=False,
-    cache=True,  # <- usa Mongo primero; si no hay, pega a la API y guarda snapshot
-)
-print(grupos.count_by_kind() if grupos else "Sin grupos")
-```
-
-Notas:
-
-- Si Mongo no está disponible, el cliente no revienta: el cache registra el error y sigue intentando obtener desde la API.
-- Si cambias `ttl_seconds`, el backend ajusta el índice TTL recreándolo si hace falta.
 
 ---
 
-## Flujo de prueba completo (similar a test_api_cruda)
-
-Un flujo típico para pruebas locales se parece a lo que hay en `test/test_api_cruda.py`:
+## Cliente Asincrono
 
 ```python
-import os
-from whatsapp_toolkit import WhatsappClient, PDFGenerator, obtener_gif_base64, obtener_imagen_base64
+from whatsapp_toolkit import AsyncWhatsappClient
 
-API_KEY = os.getenv("WHATSAPP_API_KEY", "")
-INSTANCE = os.getenv("WHATSAPP_INSTANCE", "con")
-SERVER_URL = os.getenv("WHATSAPP_SERVER_URL", "http://localhost:8080/")
+client = AsyncWhatsappClient(
+    api_key="tu-api-key",
+    server_url="http://localhost:8080/",
+    instance_name="con",
+)
 
-client = WhatsappClient(API_KEY, SERVER_URL, INSTANCE)
-
-# Si la instancia aún no está enlazada, muestra QR y escanea
-client.connect_instance_qr()
-
-numero = "5214771234567"  # tu número o un grupo
-
-# Texto
-client.send_text(numero, "¡Hola! Esta es una prueba de envío de mensajes vía Envole API 🚀")
-
-# PDF
-pdf_b64 = PDFGenerator.generar_pdf_base64("Prueba de PDF", "Este es un PDF generado y enviado.")
-client.send_media(numero, pdf_b64, filename="prueba.pdf", caption="Aquí tienes el PDF.")
-
-# Sticker
-gif_b64 = obtener_gif_base64()
-client.send_sticker(numero, gif_b64)
-
-# Imagen
-img_b64 = obtener_imagen_base64()
-client.send_media(numero, img_b64, filename="prueba.jpg", caption="Imagen de prueba", mediatype="image", mimetype="image/jpeg")
-
-# Ubicación
-client.send_location(numero, "Ubicación de prueba", "Calle Falsa 123", 19.4326, -99.1332)
+# Inicializacion inteligente (healthcheck + auto-create)
+state = await client.initialize()  # -> "open", "connecting", "close", "created", "error"
 ```
 
-Con esto deberías poder replicar y adaptar fácilmente el comportamiento que se demuestra en los tests del repositorio.
+### Enviar mensajes (async)
 
+```python
+await client.send_text("5214771234567", "Hola async")
+await client.send_media("5214771234567", img_b64, "foto.jpg", "Caption")
+await client.send_audio("5214771234567", audio_b64)
+await client.send_sticker("5214771234567", sticker_b64)
+await client.send_location("5214771234567", 19.4326, -99.1332, "Direccion")
+```
 
+### Reacciones y respuestas (async)
+
+```python
+# Reaccionar
+await client.send_reaction("5214771234567@s.whatsapp.net", "MSG_ID", "❤️")
+
+# Responder citando
+quoted = {"key": {"id": "MSG_ID"}, "message": {"conversation": "Texto original"}}
+await client.send_text("5214771234567", "Mi respuesta", quoted=quoted)
+```
+
+### Recuperar mensajes y media
+
+```python
+# Obtener un mensaje por ID
+msg = await client.get_message("BAE58DA6CBC941BC")
+if msg:
+    print(msg.body, msg.message_type)
+
+# Descargar media de un mensaje
+media_bytes = await client.download_media(msg.raw_message)
+```
+
+### Cerrar cliente
+
+```python
+await client.close()
+```
+
+---
+
+## Webhook
+
+El toolkit incluye un sistema de webhook con dos niveles de routing: **WebhookManager** (nivel evento) y **MessageRouter** (nivel tipo de mensaje).
+
+### Setup rapido
+
+La forma mas directa de conectar ambos niveles:
+
+```python
+from whatsapp_toolkit.webhook import WebhookManager, MessageRouter, EventType, MessageType, MessageUpsert
+
+manager = WebhookManager()
+router = MessageRouter()
+
+# Conectar el router al manager (sin boilerplate)
+manager.include_router(router)
+
+# Registrar handlers por tipo de mensaje
+@router.text()
+async def handle_text(event: MessageUpsert):
+    print(f"{event.push_name}: {event.body}")
+
+@router.on(MessageType.IMAGE_MESSAGE)
+async def handle_image(event: MessageUpsert):
+    print(f"Imagen recibida: {event.media_url}")
+
+# En tu endpoint de FastAPI:
+@app.post("/webhook")
+async def webhook(request: Request):
+    payload = await request.json()
+    await manager.dispatch(payload)
+```
+
+### WebhookManager (nivel evento)
+
+Recibe el JSON crudo del webhook y lo despacha a los handlers registrados.
+
+```python
+manager = WebhookManager()
+
+# Multiples handlers para el mismo evento (todos se ejecutan)
+@manager.on(EventType.MESSAGES_UPSERT)
+async def log_message(event: MessageUpsert):
+    print(f"LOG: {event.push_name} -> {event.body}")
+
+@manager.on(EventType.MESSAGES_UPSERT)
+async def save_message(event: MessageUpsert):
+    await db.save(event.raw)
+
+@manager.on(EventType.CONNECTION_UPDATE)
+async def handle_connection(event):
+    print(f"Estado: {event.state}")
+```
+
+#### include_router()
+
+Conecta un `MessageRouter` al manager sin necesidad de crear un handler puente:
+
+```python
+manager = WebhookManager()
+router = MessageRouter()
+
+# Antes (manual):
+@manager.on(EventType.MESSAGES_UPSERT)
+async def bridge(event: MessageUpsert):
+    await router.route(event)
+
+# Ahora (directo):
+manager.include_router(router)
+```
+
+Puedes combinar handlers directos + routers:
+
+```python
+manager = WebhookManager()
+router = MessageRouter()
+
+# Handler directo para logging
+@manager.on(EventType.MESSAGES_UPSERT)
+async def log_all(event: MessageUpsert):
+    print(f"[LOG] {event.message_type}: {event.body}")
+
+# Router para logica por tipo
+manager.include_router(router)
+
+@router.text()
+async def reply_text(event: MessageUpsert):
+    await client.send_text(event.remote_jid, "Recibido!")
+```
+
+### MessageRouter (nivel tipo de mensaje)
+
+Enruta mensajes a handlers segun su tipo, con filtros opcionales.
+
+```python
+router = MessageRouter()
+
+@router.text()  # Captura conversation + extendedTextMessage
+async def handle_text(event: MessageUpsert):
+    print(f"Texto: {event.body}")
+
+@router.on(MessageType.AUDIO_MESSAGE)
+async def handle_audio(event: MessageUpsert):
+    print(f"Audio: {event.media_seconds}s")
+
+@router.on(MessageType.REACTION_MESSAGE)
+async def handle_reaction(event: MessageUpsert):
+    print(f"{event.reaction_text} al mensaje {event.reaction_target_id}")
+```
+
+#### Filtros: is_group y from_me
+
+Todos los decoradores (`on`, `text`) aceptan filtros opcionales:
+
+| Filtro | `True` | `False` | `None` (default) |
+|---|---|---|---|
+| `is_group` | Solo grupos | Solo chats directos | Ambos |
+| `from_me` | Solo mensajes propios | Solo de otros | Ambos |
+
+```python
+# Solo texto en grupos, de otros usuarios
+@router.text(is_group=True, from_me=False)
+async def handle_group_text(event: MessageUpsert):
+    print(f"[{event.push_name}] en grupo: {event.body}")
+
+# Solo texto en chats directos
+@router.text(is_group=False)
+async def handle_dm(event: MessageUpsert):
+    print(f"DM de {event.push_name}: {event.body}")
+
+# Solo imagenes en grupos
+@router.on(MessageType.IMAGE_MESSAGE, is_group=True)
+async def handle_group_image(event: MessageUpsert):
+    print(f"Imagen en grupo: {event.media_url}")
+
+# Solo audios que NO son mios
+@router.on(MessageType.AUDIO_MESSAGE, from_me=False)
+async def handle_incoming_audio(event: MessageUpsert):
+    print(f"Audio recibido de {event.push_name}")
+```
+
+#### Handler por defecto (fallback)
+
+Se ejecuta cuando llega un tipo de mensaje que ningun handler maneja:
+
+```python
+@router.default()
+async def fallback(event: MessageUpsert):
+    print(f"Tipo no manejado: {event.message_type} de {event.push_name}")
+```
+
+### Detectar mensajes citados (replies)
+
+```python
+@router.text()
+async def handle_text(event: MessageUpsert):
+    if event.is_reply:
+        print(f"Respuesta al mensaje {event.quoted_message_id}")
+        print(f"Texto citado: {event.quoted_body}")
+        print(f"Autor original: {event.quoted_participant}")
+
+    print(f"Mensaje: {event.body}")
+```
+
+### Ejemplo completo: bot echo con filtros
+
+```python
+from fastapi import FastAPI, Request
+from whatsapp_toolkit import AsyncWhatsappClient
+from whatsapp_toolkit.webhook import WebhookManager, MessageRouter, EventType, MessageType, MessageUpsert
+
+app = FastAPI()
+manager = WebhookManager()
+router = MessageRouter()
+manager.include_router(router)
+
+client = AsyncWhatsappClient(api_key="...", server_url="...", instance_name="con")
+
+# Echo solo en DMs, ignorando mensajes propios
+@router.text(is_group=False, from_me=False)
+async def echo(event: MessageUpsert):
+    await client.send_text(event.remote_jid, f"Dijiste: {event.body}")
+
+# Reaccionar con un corazon a todas las imagenes en grupos
+@router.on(MessageType.IMAGE_MESSAGE, is_group=True, from_me=False)
+async def react_to_images(event: MessageUpsert):
+    await client.send_reaction(event.remote_jid, event.wa_id, "❤️")
+
+# Responder a mensajes citados
+@router.text(from_me=False)
+async def handle_reply(event: MessageUpsert):
+    if event.is_reply:
+        await client.send_text(
+            event.remote_jid,
+            f"Respondiste a: {event.quoted_body}",
+            quoted={"key": {"id": event.wa_id}, "message": {"conversation": event.body}}
+        )
+
+# Fallback para todo lo demas
+@router.default()
+async def fallback(event: MessageUpsert):
+    await client.send_text(event.remote_jid, "No entiendo ese tipo de mensaje")
+
+@app.post("/webhook")
+async def webhook(request: Request):
+    await manager.dispatch(await request.json())
+```
+
+### Propiedades de MessageUpsert
+
+| Propiedad | Tipo | Descripcion |
+|---|---|---|
+| `remote_jid` | `str` | JID del chat |
+| `from_me` | `bool` | Si el mensaje es propio |
+| `wa_id` | `str` | ID del mensaje |
+| `push_name` | `str` | Nombre del remitente |
+| `participant` | `str \| None` | Participante en grupos |
+| `is_group` | `bool` | Si es un grupo |
+| `message_type` | `str` | Tipo de mensaje |
+| `body` | `str` | Contenido del mensaje |
+| `media_url` | `str \| None` | URL del media |
+| `media_mime` | `str \| None` | MIME del media |
+| `media_seconds` | `int \| None` | Duracion del media |
+| `is_sticker` | `bool` | Si es sticker |
+| `is_reaction` | `bool` | Si es reaccion |
+| `reaction_text` | `str \| None` | Emoji de la reaccion |
+| `reaction_target_id` | `str \| None` | ID del mensaje reaccionado |
+| `is_reply` | `bool` | Si es respuesta a otro mensaje |
+| `quoted_message_id` | `str \| None` | ID del mensaje citado |
+| `quoted_participant` | `str \| None` | Autor del mensaje citado |
+| `quoted_body` | `str \| None` | Texto del mensaje citado |
+| `timestamp` | `int` | Timestamp del mensaje |
+| `raw_message` | `dict` | Mensaje raw completo |
+| `raw` | `dict` | Data raw completa |
+
+### Tipos de mensaje soportados
+
+| Constante | Valor |
+|---|---|
+| `MessageType.CONVERSATION` | `"conversation"` |
+| `MessageType.EXTENDED_TEXT_MESSAGE` | `"extendedTextMessage"` |
+| `MessageType.IMAGE_MESSAGE` | `"imageMessage"` |
+| `MessageType.VIDEO_MESSAGE` | `"videoMessage"` |
+| `MessageType.DOCUMENT_MESSAGE` | `"documentMessage"` |
+| `MessageType.AUDIO_MESSAGE` | `"audioMessage"` |
+| `MessageType.STIKER_MESSAGE` | `"stickerMessage"` |
+| `MessageType.REACTION_MESSAGE` | `"reactionMessage"` |
+
+---
+
+## Herramientas de desarrollo
+
+### Levantar Evolution API local
+
+```python
+from whatsapp_toolkit import devtools
+
+# Generar plantillas (docker-compose + env)
+devtools.init_local_evolution(path=".", overwrite=False, verbose=True)
+
+# Levantar el stack
+stack = devtools.local_evolution(path=".")
+stack.start(detached=True)
+stack.logs(follow=True)
+stack.stop()
+stack.down(volumes=False)
+```
+
+UI del manager: `http://localhost:8080/manager/`
+
+---
+
+## Utilidades incluidas
+
+```python
+from whatsapp_toolkit import PDFGenerator, obtener_gif_base64, obtener_imagen_base64
+
+# Generar PDF en base64
+pdf_b64 = PDFGenerator.generar_pdf_base64("Titulo", "Contenido del PDF")
+
+# Obtener GIF/imagen de ejemplo en base64
+gif_b64 = obtener_gif_base64()
+img_b64 = obtener_imagen_base64()
+```
+
+---
+
+## Cache de grupos (MongoDB)
+
+```python
+from whatsapp_toolkit import WhatsappClient, MongoCacheBackend
+
+cache = MongoCacheBackend(uri="mongodb://localhost:27017/db", ttl_seconds=1000)
+cache.warmup()
+
+client = WhatsappClient(api_key="...", server_url="...", instance_name="con", cache=cache)
+groups = client.get_groups_typed(get_participants=True, cache=True)
+```
+
+---
+
+## CLI
+
+```bash
+wtk --help
+```
+
+---
+
+## Licencia
+
+MIT

@@ -73,20 +73,23 @@ class AsyncWhatsappClient:
 
     # --- MENSAJERÍA (Delegación al Sender) ---
 
-    async def send_text(self, number: str, text: str, delay_ms: int = 0) -> bool:
-        return await self._sender.send_text(number, text, delay_ms)
+    async def send_text(self, number: str, text: str, delay_ms: int = 0, quoted: dict | None = None) -> bool:
+        return await self._sender.send_text(number, text, delay_ms, quoted=quoted)
 
-    async def send_media(self, number: str, media_b64: str, filename: str, caption: str = "") -> bool:
-        return await self._sender.send_media(number, media_b64, filename, caption)
+    async def send_media(self, number: str, media_b64: str, filename: str, caption: str = "", quoted: dict | None = None) -> bool:
+        return await self._sender.send_media(number, media_b64, filename, caption, quoted=quoted)
 
-    async def send_audio(self, number: str, audio_b64: str, ptt: bool = True) -> bool:
-        return await self._sender.send_audio(number, audio_b64, ptt=ptt)
+    async def send_audio(self, number: str, audio_b64: str, ptt: bool = True, quoted: dict | None = None) -> bool:
+        return await self._sender.send_audio(number, audio_b64, ptt=ptt, quoted=quoted)
 
-    async def send_sticker(self, number: str, sticker_b64: str) -> bool:
-        return await self._sender.send_sticker(number, sticker_b64)
+    async def send_sticker(self, number: str, sticker_b64: str, quoted: dict | None = None) -> bool:
+        return await self._sender.send_sticker(number, sticker_b64, quoted=quoted)
 
-    async def send_location(self, number: str, lat: float, long: float, address: str = "") -> bool:
-        return await self._sender.send_location(number, lat, long, address)
+    async def send_reaction(self, remote_jid: str, message_id: str, reaction: str, from_me: bool = False) -> bool:
+        return await self._sender.send_reaction(remote_jid, message_id, reaction, from_me)
+
+    async def send_location(self, number: str, lat: float, long: float, address: str = "", quoted: dict | None = None) -> bool:
+        return await self._sender.send_location(number, lat, long, address, quoted=quoted)
     
     async def get_message(self, message_id: str) -> Optional[MessageUpsert]:
         """

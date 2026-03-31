@@ -42,7 +42,7 @@ class WhatsAppSender:
             return HttpResponse(status_code=408, text="Timeout", json_data=None)
 
     def send_text(
-        self, number: str, text: str, link_preview: bool = True, delay_ms: int = 0
+        self, number: str, text: str, link_preview: bool = True, delay_ms: int = 0, quoted: dict | None = None,
     ) -> str:
         payload = {
             "number": number,
@@ -50,6 +50,8 @@ class WhatsAppSender:
             "delay": delay_ms,
             "linkPreview": link_preview,
         }
+        if quoted:
+            payload["quoted"] = quoted
         print(f"Enviando mensaje a {number}: {text}")
         resp = self.post(f"/message/sendText/{self.instance}", payload)
 
@@ -73,6 +75,7 @@ class WhatsAppSender:
         caption: str,
         mediatype: str = "document",
         mimetype: str = "application/pdf",
+        quoted: dict | None = None,
     ) -> str:
         payload = {
             "number": number,
@@ -85,6 +88,8 @@ class WhatsAppSender:
             "linkPreview": False,
             "mentionsEveryOne": False,
         }
+        if quoted:
+            payload["quoted"] = quoted
         resp = self.post(f"/message/sendMedia/{self.instance}", payload)
         return resp.text
 
@@ -95,6 +100,7 @@ class WhatsAppSender:
         delay: int = 0,
         link_preview: bool = True,
         mentions_everyone: bool = True,
+        quoted: dict | None = None,
     ) -> str:
         """Envía un sticker a un contacto específico."""
         payload = {
@@ -104,6 +110,8 @@ class WhatsAppSender:
             "linkPreview": link_preview,
             "mentionsEveryOne": mentions_everyone,
         }
+        if quoted:
+            payload["quoted"] = quoted
         resp = self.post(f"/message/sendSticker/{self.instance}", payload)
         return resp.text
 
@@ -115,6 +123,7 @@ class WhatsAppSender:
         latitude: float,
         longitude: float,
         delay: int = 0,
+        quoted: dict | None = None,
     ) -> str:
         """Envía una ubicación a un contacto."""
         payload = {
@@ -125,6 +134,8 @@ class WhatsAppSender:
             "longitude": longitude,
             "delay": delay,
         }
+        if quoted:
+            payload["quoted"] = quoted
         resp = self.post(f"/message/sendLocation/{self.instance}", payload)
         return resp.text
 
@@ -135,6 +146,7 @@ class WhatsAppSender:
         delay: int = 0,
         mimetype: str = "audio/ogg; codecs=opus",
         ptt: bool = True,
+        quoted: dict | None = None,
     ) -> str:
         """Envía un audio tipo nota de voz (OGG/OPUS) y muestra errores reales."""
         payload = {
@@ -144,6 +156,8 @@ class WhatsAppSender:
             "mimetype": mimetype,
             "ptt": ptt,
         }
+        if quoted:
+            payload["quoted"] = quoted
         resp = self.post(f"/message/sendWhatsAppAudio/{self.instance}", payload)
 
         status = resp.status_code if hasattr(resp, "status_code") else 0
@@ -153,6 +167,29 @@ class WhatsAppSender:
 
         print(f"❌ Error al enviar audio a {number}: {status} - {getattr(resp, 'text', resp)}")
         self.connected = False
+        return ""
+
+    def send_reaction(
+        self,
+        remote_jid: str,
+        message_id: str,
+        reaction: str,
+        from_me: bool = False,
+    ) -> str:
+        """Envía una reacción (emoji) a un mensaje. Para quitar la reacción, pasar reaction=\"\"."""
+        payload = {
+            "key": {
+                "remoteJid": remote_jid,
+                "fromMe": from_me,
+                "id": message_id,
+            },
+            "reaction": reaction,
+        }
+        resp = self.post(f"/message/sendReaction/{self.instance}", payload)
+        status = resp.status_code if hasattr(resp, "status_code") else 0
+        if 200 <= status < 300:
+            return resp.text
+        print(f"Error al enviar reacción: {status} - {resp.text}")
         return ""
 
     def connect(self, number: str) -> str:

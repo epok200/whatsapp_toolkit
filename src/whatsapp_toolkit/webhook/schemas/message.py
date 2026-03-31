@@ -165,14 +165,51 @@ class ReactionMixin(BaseEvent):
             
         return envelope
 
+class QuotedMixin(BaseEvent):
+    is_reply: bool = False
+    quoted_message_id: Optional[str] = None
+    quoted_participant: Optional[str] = None
+    quoted_body: Optional[str] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def extract_quoted(cls, envelope: Any) -> Any:
+        if not isinstance(envelope, dict):
+            return envelope
+
+        message = pluck(envelope, "data.message", {})
+
+        # contextInfo puede estar dentro de cualquier tipo de mensaje
+        context_info = None
+        for key in message:
+            if isinstance(message[key], dict) and "contextInfo" in message[key]:
+                context_info = message[key]["contextInfo"]
+                break
+
+        if context_info:
+            envelope["is_reply"] = True
+            envelope["quoted_message_id"] = context_info.get("stanzaId")
+            envelope["quoted_participant"] = context_info.get("participant")
+            quoted_msg = context_info.get("quotedMessage", {})
+            envelope["quoted_body"] = (
+                quoted_msg.get("conversation")
+                or pluck(quoted_msg, "extendedTextMessage.text")
+                or pluck(quoted_msg, "imageMessage.caption")
+                or pluck(quoted_msg, "videoMessage.caption")
+                or pluck(quoted_msg, "documentMessage.caption")
+            )
+
+        return envelope
+
 # ==============================
 # SCHEMA MAESTRO
 # ==============================
 class MessageUpsert(
-    IdentityMixin, 
-    ContentMixin, 
-    MediaMixin, 
-    ReactionMixin, 
+    IdentityMixin,
+    ContentMixin,
+    MediaMixin,
+    ReactionMixin,
+    QuotedMixin,
     MetaMixin
 ):
     @property

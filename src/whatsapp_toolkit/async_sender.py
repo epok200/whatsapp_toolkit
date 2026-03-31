@@ -40,48 +40,56 @@ class AsyncWhatsAppSender:
 
     # --- MÉTODOS PÚBLICOS DE ENVÍO ---
 
-    async def send_text(self, number: str, text: str, delay_ms: int = 0) -> bool:
+    async def send_text(self, number: str, text: str, delay_ms: int = 0, quoted: dict | None = None) -> bool:
         payload = {
             "number": number,
             "text": text,
             "delay": delay_ms,
             "linkPreview": True
         }
+        if quoted:
+            payload["quoted"] = quoted
         resp = await self._post(f"/message/sendText/{self.instance_name}", payload)
         return resp is not None and 200 <= resp.status_code < 300
 
-    async def send_media(self, number: str, media_b64: str, filename: str, caption: str = "", mimetype: str = "application/pdf") -> bool:
+    async def send_media(self, number: str, media_b64: str, filename: str, caption: str = "", mimetype: str = "application/pdf", quoted: dict | None = None) -> bool:
         payload = {
             "number": number,
             "media": media_b64,
             "fileName": filename,
             "caption": caption,
             "mimetype": mimetype,
-            "mediatype": "document" # Evolution suele autodetectar, pero "document" es seguro
+            "mediatype": "document"
         }
+        if quoted:
+            payload["quoted"] = quoted
         resp = await self._post(f"/message/sendMedia/{self.instance_name}", payload)
         return resp is not None and 200 <= resp.status_code < 300
 
-    async def send_audio(self, number: str, audio_b64: str, delay: int = 0, ptt: bool = True) -> bool:
+    async def send_audio(self, number: str, audio_b64: str, delay: int = 0, ptt: bool = True, quoted: dict | None = None) -> bool:
         payload = {
             "number": number,
             "audio": audio_b64,
             "delay": delay,
-            "mimetype": "audio/ogg; codecs=opus", # Estándar de WhatsApp
-            "ptt": ptt # True = Nota de voz, False = Archivo de audio
+            "mimetype": "audio/ogg; codecs=opus",
+            "ptt": ptt
         }
+        if quoted:
+            payload["quoted"] = quoted
         resp = await self._post(f"/message/sendWhatsAppAudio/{self.instance_name}", payload)
         return resp is not None and 200 <= resp.status_code < 300
 
-    async def send_sticker(self, number: str, sticker_b64: str) -> bool:
+    async def send_sticker(self, number: str, sticker_b64: str, quoted: dict | None = None) -> bool:
         payload = {
             "number": number,
             "sticker": sticker_b64
         }
+        if quoted:
+            payload["quoted"] = quoted
         resp = await self._post(f"/message/sendSticker/{self.instance_name}", payload)
         return resp is not None and 200 <= resp.status_code < 300
 
-    async def send_location(self, number: str, lat: float, long: float, address: str = "", name: str = "") -> bool:
+    async def send_location(self, number: str, lat: float, long: float, address: str = "", name: str = "", quoted: dict | None = None) -> bool:
         payload = {
             "number": number,
             "latitude": lat,
@@ -89,9 +97,24 @@ class AsyncWhatsAppSender:
             "address": address,
             "name": name
         }
+        if quoted:
+            payload["quoted"] = quoted
         resp = await self._post(f"/message/sendLocation/{self.instance_name}", payload)
         return resp is not None and 200 <= resp.status_code < 300
     
+    async def send_reaction(self, remote_jid: str, message_id: str, reaction: str, from_me: bool = False) -> bool:
+        """Envía una reacción (emoji) a un mensaje. Para quitar la reacción, pasar reaction=\"\"."""
+        payload = {
+            "key": {
+                "remoteJid": remote_jid,
+                "fromMe": from_me,
+                "id": message_id,
+            },
+            "reaction": reaction,
+        }
+        resp = await self._post(f"/message/sendReaction/{self.instance_name}", payload)
+        return resp is not None and 200 <= resp.status_code < 300
+
     async def find_message(self, message_id: str) -> Optional[Dict[str, Any]]:
         """
         Busca y limpia la respuesta. Devuelve el mensaje RAW limpio o None.
