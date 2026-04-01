@@ -493,6 +493,61 @@ groups = client.get_groups_typed(get_participants=True, cache=True)
 wtk --help
 ```
 
+### DevTools: Evolution API
+
+```bash
+# Inicializar stack de Evolution API
+wtk evo init --api-key TU_API_KEY --instance main
+
+# Levantar stack
+wtk evo up
+
+# Levantar y ver logs directamente
+wtk evo up -l
+
+# Levantar en foreground (sin -d)
+wtk evo up --no-bg
+
+# Reconstruir imágenes y ver logs
+wtk evo up --build -l
+
+# Ver logs por separado
+wtk evo logs
+wtk evo logs --services evolution-api
+
+# Detener / eliminar
+wtk evo stop
+wtk evo down -v
+```
+
+### DevTools: Webhook
+
+```bash
+# Inicializar stack de Webhook
+wtk webhook init --api-key TU_API_KEY
+
+# Levantar stack
+wtk webhook up
+
+# Levantar y ver logs directamente
+wtk webhook up -l
+
+# Reconstruir imágenes y ver logs
+wtk webhook up --build -l
+
+# Ver logs por separado
+wtk webhook logs
+
+# Detener / eliminar
+wtk webhook stop
+wtk webhook down -v
+```
+
+> **Nota:** El `requirements.txt` generado en `.wtk/webhook/` se sincroniza automáticamente
+> con la versión instalada de `whatsapp-toolkit`. Todas las dependencias transitivas
+> se resuelven via pip al construir la imagen Docker. Si necesitas dependencias adicionales,
+> agrégalas directamente al `requirements.txt` generado.
+
 ---
 
 ## Licencia

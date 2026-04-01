@@ -46,6 +46,7 @@ def up(
     path: str = ".",
     background: bool = typer.Option(True,"--bg/--no-bg", help="Iniciar docker en segundo plano"),
     build: bool = typer.Option(False, "--build", help="Forzar reconstrucción de imágenes de docker"),
+    logs: bool = typer.Option(False, "--logs", "-l", help="Mostrar logs después de iniciar"),
 ):
     require_docker()
     try:
@@ -54,6 +55,8 @@ def up(
             background=background,
             build=build,
         )
+        if logs and background:
+            stack.logs(follow=True)
     except RuntimeError as e:
         report_fatal_error(str(e))
     

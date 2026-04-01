@@ -1,6 +1,6 @@
 [project]
 name = "whatsapp-toolkit"
-version = "2.2.0"
+version = "2.3.0"
 description = "Una biblioteca para interactuar con la API de WhatsApp desde Python usando Evolution API"
 authors = [
     { name="Fernando Leon Franco", email="fernanlee2131@gmail.com"}
@@ -42,7 +42,7 @@ Repository = "https://github.com/epok200/whatsapp_toolkit"
 Issues = "https://github.com/epok200/whatsapp_toolkit/issues"
 
 [build-system]
-requires = ["uv_build>=0.9.17,<0.10.0"]
+requires = ["uv_build>=0.9.17,<0.11.0"]
 build-backend = "uv_build"
 
 

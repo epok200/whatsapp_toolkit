@@ -11,6 +11,7 @@ from .main import (
     Stack,
     TemplateWriter,
 )
+from whatsapp_toolkit import __version__
 from .templates import webhook_templates  as temp
 
 
@@ -120,7 +121,7 @@ class WebhookStackInitializer(BaseStackInitializer):
             .replace("{WEBHOOK_ENV_REL}", webhook_env_rel)
         )
 
-        requirements_file = temp._REQUIREMENTS_WEBHOOK
+        requirements_file = temp._REQUIREMENTS_WEBHOOK.replace("{VERSION}", __version__)
 
         # =========================
         # programming files
