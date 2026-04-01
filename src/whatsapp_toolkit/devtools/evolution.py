@@ -12,7 +12,7 @@ from .main import (
     Stack,
     TemplateWriter,
 )
-from .templates import evo_templates
+from .templates import render_template
 
 
 # =========================
@@ -28,7 +28,7 @@ class EvolutionInitOptions(BaseInitOptions):
 
 def _evolution_required_paths(paths: PathConfig) -> "Files":
     stack_dir = paths.stack_dir("evolution")  # ./project/.wtk/evolution/
-    
+
     list_file: list[File] = [
         # Server files
         File.from_path("compose", "docker-compose.yml", stack_dir),
@@ -59,48 +59,39 @@ EVOLUTION = BaseStackSpec(
 class EvolutionStackInitializer(BaseStackInitializer):
     def __init__(self, spec: BaseStackSpec, paths: PathConfig, writer: TemplateWriter | None = None):
         super().__init__(spec, paths, writer)
-    
-    
+
+
     def init(self, options: EvolutionInitOptions) -> None:
         files = self.spec.paths(self.paths)
-        
+
         # Directorio base
         stack_dir = self.stack_dir()
 
-        # Archivos de evolution
-        compose_path = files.get_path("compose")
-        env_path = files.get_path("env_compose")
-        
-        port = self.port()
+        port = str(self.port())
 
-        compose_file = (
-            evo_templates._DOCKER_COMPOSE_EVOLUTION
-            .replace("{VERSION}", options.version)
-            .replace("{PORT}", str(port))
-            .replace("{WEBHOOK_URL}", options.webhook_url)
+        ctx = dict(
+            version=options.version,
+            port=port,
+            webhook_url=options.webhook_url,
+            api_key=options.api_key,
+            instance=options.instance,
+            server_url=f"http://localhost:{port}/",
         )
-        
-        dotenv_file = (
-            evo_templates._DOTENV_EVOLUTION
-            .replace("{API_KEY}", options.api_key)
-            .replace("{INSTANCE}", options.instance)
-            .replace("{SERVER_URL}", f"http://localhost:{port}/")
-        )
-        
-        
-        files_and_paths_list =[
-            (compose_file, compose_path),
-            (dotenv_file, env_path),
+
+        template_map = [
+            ("compose",     "docker-compose.yml.j2", ctx),
+            ("env_compose", "dotenv.j2",             ctx),
         ]
-        
 
-        for content, path in files_and_paths_list:
+        for file_key, template_name, template_ctx in template_map:
+            content = render_template("evolution", template_name, **template_ctx)
+            path = files.get_path(file_key)
             self.writer.write(path, content, overwrite=options.overwrite)
-        
+
         if options.verbose:
             log.info(f"[whatsapp-toolkit] ✅ Stack '{self.spec.name}' listo en: {stack_dir}")
-            for _, p in files_and_paths_list:
-                log.library(f"  - {p.name}")
+            for file_key, _, _ in template_map:
+                log.library(f"  - {files.get_path(file_key).name}")
 
 
 
@@ -109,24 +100,24 @@ class EvolutionStackInitializer(BaseStackInitializer):
 # =========================
 
 def init_evolution(
-        path: str = ".", 
-        overwrite: bool = False, 
-        version: str = "2.3.7", 
-        verbose: bool = True, 
-        api_key: str = "YOUR_EVOLUTION_API_KEY", 
+        path: str = ".",
+        overwrite: bool = False,
+        version: str = "2.3.7",
+        verbose: bool = True,
+        api_key: str = "YOUR_EVOLUTION_API_KEY",
         instance: str = "main",
         webhook_url: str = "http://host.docker.internal:8000/evolution/webhook",
     ) -> None:
     path_conf = PathConfig.from_path(path)
     (EvolutionStackInitializer(EVOLUTION, path_conf).init(EvolutionInitOptions(
-        overwrite=overwrite, 
-        verbose=verbose, 
+        overwrite=overwrite,
+        verbose=verbose,
         version=version,
         api_key=api_key,
         instance=instance,
         webhook_url=webhook_url
     )))
-    
+
 def stack_evolution(path: str = ".") -> Stack:
     path_conf = PathConfig.from_path(path)
     return Stack(EVOLUTION, path_conf)

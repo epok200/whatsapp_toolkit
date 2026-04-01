@@ -46,5 +46,8 @@ requires = ["uv_build>=0.9.17,<0.11.0"]
 build-backend = "uv_build"
 
 
+[tool.uv-build]
+data-includes = ["src/whatsapp_toolkit/devtools/templates/**/*.j2"]
+
 [project.scripts]
 wtk = "whatsapp_toolkit.cli.main:app"

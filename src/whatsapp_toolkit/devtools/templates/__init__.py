@@ -1,16 +1,13 @@
-from .evo_templates import (
-    _DOTENV_EVOLUTION,
-    _DOCKER_COMPOSE_EVOLUTION,
-)
-from .webhook_templates import (
-    _DOCKER_COMPOSE_WEBHOOK,
-    _DOCKERFILE_WEBHOOK,
-    _DOTENV_COMPOSE_WEBHOOK,
-    _REQUIREMENTS_WEBHOOK,
-    
-    _DOTENV_WEBHOOK,   
-    _MAIN_WEBHOOK_PY,
+from jinja2 import Environment, PackageLoader, StrictUndefined
 
-    _README_WEBHOOK_MD,
-    
+_env = Environment(
+    loader=PackageLoader("whatsapp_toolkit.devtools", "templates"),
+    keep_trailing_newline=True,
+    undefined=StrictUndefined,
 )
+
+
+def render_template(stack: str, name: str, **context: str) -> str:
+    """Renderiza un template .j2 de un stack dado con las variables de contexto."""
+    template = _env.get_template(f"{stack}/{name}")
+    return template.render(**context)

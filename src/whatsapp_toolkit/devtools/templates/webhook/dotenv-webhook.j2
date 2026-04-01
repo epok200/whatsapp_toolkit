@@ -1,0 +1,9 @@
+# =========================================
+# WhatsApp Toolkit - Webhook (runtime/app)
+# =========================================
+# Este archivo lo consume la app FastAPI dentro del contenedor.
+# Si cambias variables aquí, normalmente NO requiere rebuild; solo reiniciar el contenedor.
+
+WHATSAPP_API_KEY={{ api_key }}
+WHATSAPP_INSTANCE=main
+WHATSAPP_SERVER_URL=http://host.docker.internal:8080

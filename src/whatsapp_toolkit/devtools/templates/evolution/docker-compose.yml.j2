@@ -1,33 +1,9 @@
-
-
-# ================================ DOTENV ==============================
-
-_DOTENV_EVOLUTION = """# =========================================
-# WhatsApp Toolkit (Python) - configuración local/dev
-# =========================================
-# NOTA:
-# - Este es un archivo de creado automaticamente si cambias algo reinica el docker.
-# - Sugerencia ignora esta carpeta '.wtk' en tu .gitignore.
-
-# --- Ajustes del cliente Python ---
-WHATSAPP_API_KEY={API_KEY}
-WHATSAPP_INSTANCE={INSTANCE}
-WHATSAPP_SERVER_URL={SERVER_URL}
-
-# --- Secretos compartidos de Docker Compose ---
-AUTHENTICATION_API_KEY={API_KEY}
-"""
-
-
-
- # ================================ DOCKER COMPOSE EVOLUTION ==============================
- 
-_DOCKER_COMPOSE_EVOLUTION = """services:
+services:
     evolution-api:
-        image: evoapicloud/evolution-api:v{VERSION}
+        image: evoapicloud/evolution-api:v{{ version }}
         restart: always
         ports:
-            - "{PORT}:{PORT}"
+            - "{{ port }}:{{ port }}"
         volumes:
             - evolution-instances:/evolution/instances
 
@@ -74,12 +50,12 @@ _DOCKER_COMPOSE_EVOLUTION = """services:
             - CACHE_REDIS_URI=redis://evolution-redis:6379
             - CACHE_REDIS_PREFIX_KEY=evolution
             - CACHE_REDIS_SAVE_INSTANCES=true
-            
+
             # =========================
             # Webhook
             # =========================
             - WEBHOOK_GLOBAL_ENABLED=true
-            - WEBHOOK_GLOBAL_URL={WEBHOOK_URL}
+            - WEBHOOK_GLOBAL_URL={{ webhook_url }}
             # With this option enabled, you work with one URL per webhook event, respecting the global URL and each event's name
             - WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS=true
 
@@ -103,7 +79,6 @@ _DOCKER_COMPOSE_EVOLUTION = """services:
         restart: always
         volumes:
             - evolution-redis-data:/data
-            
 
 
 
@@ -111,4 +86,3 @@ volumes:
     evolution-instances:
     evolution-postgres-data:
     evolution-redis-data:
-"""

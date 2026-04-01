@@ -1,0 +1,19 @@
+# =========================================
+# WhatsApp Toolkit - Webhook (Docker Compose)
+# =========================================
+# Este archivo controla:
+# - Puerto HOST
+# - Ruta a carpeta ./webhook (para montar como volumen)
+# - Ruta a ./webhook/.env (runtime env del contenedor)
+# - Versión base de Python (build arg)
+#
+# Nota: rutas RELATIVAS son relativas a .wtk/webhook/
+# Ejemplo típico:
+# WEBHOOK_DIR_REL=../../webhook
+# WEBHOOK_ENV_REL=../../webhook/.env
+
+PORT={{ port }}
+PYTHON_VERSION={{ python_version }}
+
+WEBHOOK_DIR_REL={{ webhook_dir_rel }}
+WEBHOOK_ENV_REL={{ webhook_env_rel }}

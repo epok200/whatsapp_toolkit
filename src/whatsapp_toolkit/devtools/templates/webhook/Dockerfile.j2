@@ -1,0 +1,14 @@
+ARG PYTHON_VERSION=3.13.11
+FROM python:${PYTHON_VERSION}-slim
+
+WORKDIR /app
+
+COPY requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
+
+# El código vive montado en /app/webhook (no se copia en build)
+WORKDIR /app
+
+EXPOSE 8000
+
+CMD ["python", "-m", "uvicorn", "webhook.main:app", "--host", "0.0.0.0", "--port", "8000"]
