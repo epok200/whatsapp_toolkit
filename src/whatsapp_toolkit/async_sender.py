@@ -102,16 +102,23 @@ class AsyncWhatsAppSender:
         resp = await self._post(f"/message/sendLocation/{self.instance_name}", payload)
         return resp is not None and 200 <= resp.status_code < 300
     
-    async def send_reaction(self, remote_jid: str, message_id: str, reaction: str, from_me: bool = False) -> bool:
-        """Envía una reacción (emoji) a un mensaje. Para quitar la reacción, pasar reaction=\"\"."""
-        payload = {
-            "key": {
-                "remoteJid": remote_jid,
-                "fromMe": from_me,
-                "id": message_id,
-            },
-            "reaction": reaction,
+    async def send_reaction(
+        self,
+        remote_jid: str,
+        message_id: str,
+        reaction: str,
+        from_me: bool = False,
+        participant: str | None = None,
+    ) -> bool:
+        """Envía una reacción (emoji). En grupos pasar `participant` (JID del autor original); en privados puede omitirse. Para quitar la reacción, pasar reaction=\"\"."""
+        key: dict = {
+            "remoteJid": remote_jid,
+            "fromMe": from_me,
+            "id": message_id,
         }
+        if participant:
+            key["participant"] = participant
+        payload = {"key": key, "reaction": reaction}
         resp = await self._post(f"/message/sendReaction/{self.instance_name}", payload)
         return resp is not None and 200 <= resp.status_code < 300
 

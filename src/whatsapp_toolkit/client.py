@@ -275,11 +275,11 @@ class WhatsappClient(BaseClient):
         return sender.send_audio(number, audio_b64, delay, quoted=quoted)
 
 
-    def send_reaction(self, remote_jid: str, message_id: str, reaction: str, from_me: bool = False):
+    def send_reaction(self, remote_jid: str, message_id: str, reaction: str, from_me: bool = False, participant: str | None = None):
         sender = self._sender
         if sender is None:
             return False
-        return sender.send_reaction(remote_jid, message_id, reaction, from_me)
+        return sender.send_reaction(remote_jid, message_id, reaction, from_me, participant=participant)
 
     def connect_number(self, number: str):
         sender = self._sender

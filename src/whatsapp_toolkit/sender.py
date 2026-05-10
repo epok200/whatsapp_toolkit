@@ -175,16 +175,17 @@ class WhatsAppSender:
         message_id: str,
         reaction: str,
         from_me: bool = False,
+        participant: str | None = None,
     ) -> str:
-        """Envía una reacción (emoji) a un mensaje. Para quitar la reacción, pasar reaction=\"\"."""
-        payload = {
-            "key": {
-                "remoteJid": remote_jid,
-                "fromMe": from_me,
-                "id": message_id,
-            },
-            "reaction": reaction,
+        """Envía una reacción (emoji). En grupos pasar `participant` (JID del autor original); en privados puede omitirse. Para quitar la reacción, pasar reaction=\"\"."""
+        key: dict = {
+            "remoteJid": remote_jid,
+            "fromMe": from_me,
+            "id": message_id,
         }
+        if participant:
+            key["participant"] = participant
+        payload = {"key": key, "reaction": reaction}
         resp = self.post(f"/message/sendReaction/{self.instance}", payload)
         status = resp.status_code if hasattr(resp, "status_code") else 0
         if 200 <= status < 300:

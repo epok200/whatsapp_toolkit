@@ -85,8 +85,8 @@ class AsyncWhatsappClient:
     async def send_sticker(self, number: str, sticker_b64: str, quoted: dict | None = None) -> bool:
         return await self._sender.send_sticker(number, sticker_b64, quoted=quoted)
 
-    async def send_reaction(self, remote_jid: str, message_id: str, reaction: str, from_me: bool = False) -> bool:
-        return await self._sender.send_reaction(remote_jid, message_id, reaction, from_me)
+    async def send_reaction(self, remote_jid: str, message_id: str, reaction: str, from_me: bool = False, participant: str | None = None) -> bool:
+        return await self._sender.send_reaction(remote_jid, message_id, reaction, from_me, participant=participant)
 
     async def send_location(self, number: str, lat: float, long: float, address: str = "", quoted: dict | None = None) -> bool:
         return await self._sender.send_location(number, lat, long, address, quoted=quoted)
