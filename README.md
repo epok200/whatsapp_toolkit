@@ -1,7 +1,7 @@
 
 # Whatsapp Toolkit
 
-Version: **2.2.0**
+Version: **2.3.1**
 
 Libreria Python para interactuar con WhatsApp a traves de [Evolution API](https://doc.evolution-api.com/). Soporta clientes sincronos y asincronos, envio de mensajes, reacciones, respuestas citadas, webhook con routing de eventos, y herramientas de desarrollo local.
 
@@ -78,11 +78,22 @@ client.send_location("5214771234567", "Mi lugar", "Calle 123", 19.4326, -99.1332
 ### Reaccionar a un mensaje
 
 ```python
+# Chat directo
 client.send_reaction(
     remote_jid="5214771234567@s.whatsapp.net",
     message_id="BAE58DA6CBC941BC",
     reaction="🚀",
     from_me=False,
+)
+
+# En grupos: pasar `participant` (JID del autor original del mensaje).
+# Sin este campo, Evolution responde 200 OK pero la reaccion NO se propaga.
+client.send_reaction(
+    remote_jid="120363012345678901@g.us",
+    message_id="BAE58DA6CBC941BC",
+    reaction="🚀",
+    from_me=False,
+    participant="5214771234567@s.whatsapp.net",
 )
 
 # Quitar reaccion
@@ -158,8 +169,16 @@ await client.send_location("5214771234567", 19.4326, -99.1332, "Direccion")
 ### Reacciones y respuestas (async)
 
 ```python
-# Reaccionar
+# Reaccionar en chat directo
 await client.send_reaction("5214771234567@s.whatsapp.net", "MSG_ID", "❤️")
+
+# Reaccionar en grupo (requiere `participant` = JID del autor del mensaje)
+await client.send_reaction(
+    "120363012345678901@g.us",
+    "MSG_ID",
+    "❤️",
+    participant="5214771234567@s.whatsapp.net",
+)
 
 # Responder citando
 quoted = {"key": {"id": "MSG_ID"}, "message": {"conversation": "Texto original"}}
@@ -370,9 +389,15 @@ async def echo(event: MessageUpsert):
     await client.send_text(event.remote_jid, f"Dijiste: {event.body}")
 
 # Reaccionar con un corazon a todas las imagenes en grupos
+# (en grupos, `participant` es obligatorio para que la reaccion se propague)
 @router.on(MessageType.IMAGE_MESSAGE, is_group=True, from_me=False)
 async def react_to_images(event: MessageUpsert):
-    await client.send_reaction(event.remote_jid, event.wa_id, "❤️")
+    await client.send_reaction(
+        event.remote_jid,
+        event.wa_id,
+        "❤️",
+        participant=event.participant,
+    )
 
 # Responder a mensajes citados
 @router.text(from_me=False)
